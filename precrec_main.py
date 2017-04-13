@@ -162,7 +162,7 @@ if __name__=='__main__':
     resultMFO = []
     for f in args.file:
         print('Evaluating %s.\n' % f.name)
-        resulthandle = open("./results/%s_results.txt" % os.path.basename(f.name),'w')
+        resulthandle = open("./results/%s_results.txt" % os.path.basename(f.name).split('.')[0],'w')
         #first split the prediction file into three ontologies
         all_pred = GOPred()
         pred_path = f
