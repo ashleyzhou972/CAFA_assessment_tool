@@ -37,8 +37,8 @@ Limited knowledge (LK) benchmarks are those proteins that have experimental anno
 
 ## Example
 
-`python precrec_main.py ./Doegroup_1_10116.txt -t 'type1' -m 'full' -s 'N' `
-`python precrec_main.py ./Doegroup_2_9606.txt .Doegroup_1_9606.txt -t 'type1' -m full -title 'Doegroup_1_vs_2' -s Y`
+- `python precrec_main.py ./Doegroup_1_10116.txt -t 'type1' -m 'full' -s 'N' `
+- `python precrec_main.py ./Doegroup_2_9606.txt .Doegroup_1_9606.txt -t 'type1' -m full -title 'Doegroup_1_vs_2' -s Y`
 
 ## References
 Jiang, Yuxiang, et al. "An expanded evaluation of protein function prediction methods shows an improvement in accuracy." Genome biology 17.1 (2016): 184.
