@@ -28,23 +28,26 @@ confidence_field = re.compile("^[0,1]\.[0-9][0-9]$")
 
 # Legal states: the CAFA prediction records fields, and their order. KEYWORDS and ACCURACY are
 # optional
-legal_states1 = ["author","model","keywords","accuracy","go_prediction","end"]
-legal_states2 = ["author","model","keywords","go_prediction","end"]
-legal_states3 = ["author","model","go_prediction","end"]
+legal_states1 = ["author", "model", "keywords",
+                 "accuracy", "go_prediction", "end"]
+legal_states2 = ["author", "model", "keywords", "go_prediction", "end"]
+legal_states3 = ["author", "model", "go_prediction", "end"]
 legal_states4 = ["go_prediction"]
 
 legal_keywords = [
-"sequence alignment", "sequence-profile alignment", "profile-profile alignment", "phylogeny",
-"sequence properties",
-"physicochemical properties", "predicted properties", "protein interactions", "gene expression",
-"mass spectrometry",
-"genetic interactions", "protein structure", "literature", "genomic context", "synteny", 
-"structure alignment",
-"comparative model", "predicted protein structure", "de novo prediction", "machine learning", 
-"genome environment", 
-"operon", "ortholog", "paralog", "homolog", "hidden markov model", "clinical data", "genetic data", 
-"natural language processing", "other functional information"
+    "sequence alignment", "sequence-profile alignment", "profile-profile alignment", "phylogeny",
+    "sequence properties",
+    "physicochemical properties", "predicted properties", "protein interactions", "gene expression",
+    "mass spectrometry",
+    "genetic interactions", "protein structure", "literature", "genomic context", "synteny",
+    "structure alignment",
+    "comparative model", "predicted protein structure", "de novo prediction", "machine learning",
+    "genome environment",
+    "operon", "ortholog", "paralog", "homolog", "hidden markov model", "clinical data", "genetic data",
+    "natural language processing", "other functional information"
 ]
+
+
 class GOPred:
     """
     A class for reading and storing CAFA GO predictions
@@ -57,19 +60,19 @@ class GOPred:
     The split function will perform spliting the prediction by ontology, which used to be a separate function in preprocess.py
     updated by Ashley: 12/29/2016
     """
+
     def __init__(self):
-        #get author (teamID) and model from both header and filename
+        # get author (teamID) and model from both header and filename
         self.author = None
         self.model = None
-        #get keywords and accuracy from header
+        # get keywords and accuracy from header
         self.keywords = []
-        #split by ontology
-        #get taxon from filename
+        # split by ontology
+        # get taxon from filename
         self.taxon = None
         self.data = defaultdict(list)
 
-
-    def _author_check(self,inrec):
+    def _author_check(self, inrec):
         correct = True
         errmsg = None
         fields = [i.strip() for i in inrec.split()]
@@ -83,7 +86,7 @@ class GOPred:
             self.author = fields[1]
         return correct, errmsg
 
-    def _model_check(self,inrec):
+    def _model_check(self, inrec):
         correct = True
         errmsg = None
         fields = [i.strip() for i in inrec.split()]
@@ -100,7 +103,7 @@ class GOPred:
             self.model = int(fields[1])
         return correct, errmsg
 
-    def _keywords_check(self,inrec):
+    def _keywords_check(self, inrec):
         correct = True
         errmsg = None
         if inrec[:8] != "KEYWORDS":
@@ -109,7 +112,7 @@ class GOPred:
         else:
             keywords = [i.strip().lower() for i in inrec[8:].split(",")]
             for keyword in keywords:
-                #stupid full stop 
+                # stupid full stop
                 if keyword[-1] == ".":
                     keyword = keyword[:-1]
                 if keyword not in legal_keywords:
@@ -120,7 +123,7 @@ class GOPred:
                     self.keywords.append(keyword)
         return correct, errmsg
 
-    def _accuracy_check(self,inrec):
+    def _accuracy_check(self, inrec):
         correct = True
         errmsg = None
         fields = [i.strip() for i in inrec.split()]
@@ -141,8 +144,7 @@ class GOPred:
             errmsg = "ACCURACY: error in RC field"
         return correct, errmsg
 
-
-    def _go_prediction_check(self,inrec):
+    def _go_prediction_check(self, inrec):
         correct = True
         errmsg = None
         fields = [i.strip() for i in inrec.split()]
@@ -162,10 +164,11 @@ class GOPred:
             correct = False
             errmsg = "GO prediction: error in third (confidence) field. Cannot be > 1.0"
         else:
-            self.data[fields[0]].append({'term': fields[1], 'confidence': float(fields[2])})
+            self.data[fields[0]].append(
+                {'term': fields[1], 'confidence': float(fields[2])})
         return correct, errmsg
 
-    def _end_check(self,inrec):
+    def _end_check(self, inrec):
         correct = True
         errmsg = None
         fields = [i.strip() for i in inrec.split()]
@@ -177,11 +180,10 @@ class GOPred:
             errmsg = "END: record should include the word END only"
         return correct, errmsg
 
-    def _handle_error(self,correct, errmsg, inrec):
+    def _handle_error(self, correct, errmsg, inrec):
         if not correct:
-            print (inrec)
+            print(inrec)
             raise ValueError(errmsg)
-
 
     def read(self, pred_path):
         visited_states = []
@@ -194,7 +196,7 @@ class GOPred:
         filenamefields = filename.split('.')[0].split('_')
         self.taxon = filenamefields[2]
         #inline = open(pred_path)
-        for inline in pred_path: 
+        for inline in pred_path:
             # gzipped files are in bytes. Need to convert to utf-8
             if type(inline) is bytes:
                 inline = inline.decode("utf-8")
@@ -211,27 +213,24 @@ class GOPred:
                 state = "accuracy"
             elif field1 == "END":
                 state = "end"
-            else: #default to prediction state
+            else:  # default to prediction state
                 state = "go_prediction"
             # Check for errors according to state
             if state == "author":
-                correct,errmsg = self._author_check(inline)
-                if correct and self.author!=filenamefields[0]:
-                    correct=False
-                    errmsg = "AUTHOR: author name different from teamID in filename"
-                self._handle_error(correct, errmsg,inline)
+                correct, errmsg = self._author_check(inline)
+                self._handle_error(correct, errmsg, inline)
                 visited_states.append(state)
-                    
+
             elif state == "model":
                 n_models += 1
                 n_accuracy = 0
                 if n_models > 3:
                     raise ValueError("Too many models. Only up to 3 allowed")
-                correct,errmsg = self._model_check(inline)
-                if correct and self.model!=int(filenamefields[1]):
-                    correct=False
-                    errmsg = 'MODEL: model number in file different from filename'
-                self._handle_error(correct, errmsg,inline)
+                correct, errmsg = self._model_check(inline)
+                if correct and self.model != int(filenamefields[1]):
+                    correct = False
+                    errmsg = 'MODEL: model number in file different from filename: %' % pred_path.name
+                self._handle_error(correct, errmsg, inline)
                 if n_models == 1:
                     visited_states.append(state)
             elif state == "keywords":
@@ -239,49 +238,50 @@ class GOPred:
                     visited_states.append(state)
                     first_keywords = False
                 correct, errmsg = self._keywords_check(inline)
-                self._handle_error(correct, errmsg,inline)
+                self._handle_error(correct, errmsg, inline)
             elif state == "accuracy":
                 if first_accuracy:
                     visited_states.append(state)
                     first_accuracy = False
                 n_accuracy += 1
                 if n_accuracy > 3:
-                    self._handle_error(False, "ACCURACY: too many ACCURACY records")
+                    self._handle_error(
+                        False, "ACCURACY: too many ACCURACY records: %" % pred_path.name)
                 else:
                     correct, errmsg = self._accuracy_check(inline)
             elif state == "go_prediction":
                 correct, errmsg = self._go_prediction_check(inline)
-                self._handle_error(correct, errmsg,inline)
+                self._handle_error(correct, errmsg, inline)
                 if first_prediction:
                     visited_states.append(state)
                     first_prediction = False
             elif state == "end":
                 correct, errmsg = self._end_check(inline)
-                self._handle_error(correct, errmsg,inline)
+                self._handle_error(correct, errmsg, inline)
                 visited_states.append(state)
             # End file forloop
         if (visited_states != legal_states1 and
             visited_states != legal_states2 and
             visited_states != legal_states3 and
-            visited_states != legal_states4):
-            print (visited_states)
-            print ("file not formatted according to CAFA specs")
-            print ("Check whether all these record types are in your file")
-            print ("Check whether all these record types are in your file in the correct order")
-            print ("AUTHOR, MODEL, KEYWORDS, ACCURACY (optional), predictions, END")
+                visited_states != legal_states4):
+            print(visited_states)
+            print("file not formatted according to CAFA specs")
+            print("Check whether all these record types are in your file")
+            print(
+                "Check whether all these record types are in your file in the correct order")
+            print("AUTHOR, MODEL, KEYWORDS, ACCURACY (optional), predictions, END")
             raise ValueError
-     
-            
-    def read_and_split_and_write(self,obo_path,pred_path):
-        #This function has self.read() included
-        #pred_path should be a handle
-        #split both writes to the predictions to three separate files
-        #also saves the data in memory?
+
+    def read_and_split_and_write(self, obo_path, pred_path):
+        # This function has self.read() included
+        # pred_path should be a handle
+        # split both writes to the predictions to three separate files
+        # also saves the data in memory?
         self.read(pred_path)
         go_graph = OboIO.OboReader(open(obo_path)).read()
-        mfo_out = open("%s_MFO.txt" % os.path.splitext(pred_path.name)[0],"w")
-        bpo_out = open("%s_BPO.txt" % os.path.splitext(pred_path.name)[0],"w")
-        cco_out = open("%s_CCO.txt" % os.path.splitext(pred_path.name)[0],"w")
+        mfo_out = open("%s_MFO.txt" % os.path.splitext(pred_path.name)[0], "w")
+        bpo_out = open("%s_BPO.txt" % os.path.splitext(pred_path.name)[0], "w")
+        cco_out = open("%s_CCO.txt" % os.path.splitext(pred_path.name)[0], "w")
         for protein in self.data.items():
             for u in protein[1]:
                 try:
@@ -289,23 +289,26 @@ class GOPred:
                 except KeyError:
                     #print("Term %s not included in obo file.\n" % str(e))
                     namespace = None
-                    #This excludes a term that's not found in the obo file 
-                    #to be entered into any of the ontology-specific files
-                if namespace == 'molecular_function': 
-                    mfo_out.write("%s\t%s\t%.2f\n" % (protein[0], u['term'], u['confidence']))
-                elif namespace == 'biological_process': 
-                    bpo_out.write("%s\t%s\t%.2f\n" % (protein[0], u['term'], u['confidence']))
-                elif namespace == 'cellular_component': 
-                    cco_out.write("%s\t%s\t%.2f\n" % (protein[0], u['term'], u['confidence']))
-                elif namespace==None:
+                    # This excludes a term that's not found in the obo file
+                    # to be entered into any of the ontology-specific files
+                if namespace == 'molecular_function':
+                    mfo_out.write("%s\t%s\t%.2f\n" %
+                                  (protein[0], u['term'], u['confidence']))
+                elif namespace == 'biological_process':
+                    bpo_out.write("%s\t%s\t%.2f\n" %
+                                  (protein[0], u['term'], u['confidence']))
+                elif namespace == 'cellular_component':
+                    cco_out.write("%s\t%s\t%.2f\n" %
+                                  (protein[0], u['term'], u['confidence']))
+                elif namespace == None:
                     #print("Some terms are not included in obo file\n")
                     continue
                 else:
-                    raise ValueError ("Term %s not found in any ontology" % u['term'])
+                    raise ValueError(
+                        "Term %s not found in any ontology" % u['term'])
         mfo_out.close()
         bpo_out.close()
         cco_out.close()
         #self.data = None
-        #the ontology-specific files will be re-read from PrecREC
-        #12/31/2016
-            
+        # the ontology-specific files will be re-read from PrecREC
+        # 12/31/2016

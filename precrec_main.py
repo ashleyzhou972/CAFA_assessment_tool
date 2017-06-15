@@ -11,6 +11,7 @@ from precrec.precRec import PrecREC,read_benchmark,result
 from precrec.GOPred import GOPred
 import numpy
 import os
+import sys
 import matplotlib
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
@@ -43,12 +44,15 @@ def get_namespace_index(namespace):
         print(namespace)
     return num
 
-
 def taxon_name_converter(taxonID):
     #convert from taxonomy ID to name (i.e. from 9606 to HUMAN）
-    taxonTable = {'10116':'RAT','9606':'HUMAN','3702':'ARATH','7955':'DANRE','44689':'DICDI','7227':'DROME','83333':'ECOLI','10090':'MOUSE','208963':'PSEAE','4896':'SCHPO','4932':'YEAST'}
+    taxonTable = {'10116':'RAT','9606':'HUMAN','3702':'ARATH','7955':'DANRE','44689':'DICDI',
+    '7227':'DROME','83333':'ECOLI','10090':'MOUSE','208963':'PSEAE',
+    '237561':'CANAX','559292':'YEAST','284812':'SCHPO','8355':'XENLA','224308':'BACSU',
+    '99287':'SALTY','243232':'METJA','321314':'SALCH','160488':'PSEPK','223283':'PSESM',
+    '85962':'HELPY','243273':'MYCGE','170187':'STRPN','273057':'SULSO','all':'all','prokarya':'prokarya','eukarya':'eukarya'}
     return taxonTable[taxonID]    
-
+ 
 
 def curveSmooth(result):
     #This function removes a p-r pair if there exists another p-r pair that's greater in both precision and recall
@@ -98,32 +102,35 @@ def plotMultiple(title,listofResults,smooth):
     supply lists of precision+recall+name lists
     '''
     num = len(listofResults)
-    pal=sns.color_palette("Set2", num)
-    colors=pal.as_hex()
-    for j,i in enumerate(listofResults):
-        if smooth=='Y':
-            ax = plt.subplot()
-            precision = curveSmooth(i)[0]
-            recall = curveSmooth(i)[1]
-            ax.plot(recall,precision,'-',color=colors[j],label=i.author+': fmax='+ '%.3f'%i.opt) 
-            ax.plot(i.recall[int(i.thres*100)],i.precision[int(i.thres*100)],'o',color=colors[j])
-        elif smooth=='N':
-            ax = plt.subplot()
-            ax.plot(i.recall,i.precision,'-',color=colors[j],label=i.author+': fmax='+ '%.3f'%i.opt )
-            ax.plot(i.recall[int(i.thres*100)],i.precision[int(i.thres*100)],'o',color=colors[j])
-    plt.axis([0,1,0,1])
-    plt.yticks(numpy.arange(0,1,0.1))
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.legend(loc='best')
-    plt.title(title)
-    if title == None:
-        figurename = './plots/Combined_plot.png'
-    else:
-        figurename = './plots/'+title+'.png'
+    if num>1:
+        pal=sns.color_palette("Set2", num)
+        colors=pal.as_hex()
+        for j,i in enumerate(listofResults):
+            if smooth=='Y':
+                ax = plt.subplot()
+                precision = curveSmooth(i)[0]
+                recall = curveSmooth(i)[1]
+                ax.plot(recall,precision,'-',color=colors[j],label=i.author+': fmax='+ '%.3f'%i.opt) 
+                ax.plot(i.recall[int(i.thres*100)],i.precision[int(i.thres*100)],'o',color=colors[j])
+            elif smooth=='N':
+                ax = plt.subplot()
+                ax.plot(i.recall,i.precision,'-',color=colors[j],label=i.author+': fmax='+ '%.3f'%i.opt )
+                ax.plot(i.recall[int(i.thres*100)],i.precision[int(i.thres*100)],'o',color=colors[j])
+        plt.axis([0,1,0,1])
+        plt.yticks(numpy.arange(0,1,0.1))
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.legend(loc='best')
+        plt.title(title)
+        if title == None:
+            figurename = './plots/Combined_plot.png'
+        else:
+            figurename = './plots/'+title+'.png'
+        
+        plt.savefig(figurename,dpi=200)
+        plt.close()
     
-    plt.savefig(figurename,dpi=200)
-    plt.close()
+    
 def typeConverter(oldType):
     if oldType=='type1':
         newType = 'NK'
@@ -138,13 +145,21 @@ def typeConverter(oldType):
 if __name__=='__main__':
     
     parser = argparse.ArgumentParser(description='Precision- Recall assessment for CAFA predictions.', )
-    parser.add_argument('file',type=open,
+    
+    def extant_file(x):
+        if not os.path.isfile(x):
+            raise argparse.ArgumentTypeError("{0} does not exist".format(x))
+        else:
+            return(open(x,'r'))
+        
+    parser.add_argument('file',type=extant_file,
                         help='Input prediction file. Filename should follow CAFA formats. Accepts more than one predictions.',
-                        nargs = '+')
+                        nargs = '+',)
     #CAFA3 raw submission filename formats are listed here:https://www.synapse.org/#!Synapse:syn5840147/wiki/402192
     #example filename format: Doegroup_1_9606.txt/Doegroup_2_hpo.txt
     #If prediction file is already split by ontology it should follow Doegroup_1_9606_BPO.txt(or _MFO, _CCO)                  
     
+
     
     parser.add_argument('-t','--t',dest='type',help = 'Input evaluation type: No Knowledge or Limited Knowledge', choices=['type1','type2','all'],required=True)    
     parser.add_argument('-o','--o', dest= 'obo_path',help = 'Input the obo file path',default = './precrec/go_20130615-termdb.obo')
@@ -157,12 +172,13 @@ if __name__=='__main__':
     mkdir_p('./results/')
     
     num = len(args.file)
+    print('Number of predictions supplied: %s\n' % num)
     resultBPO = []
     resultCCO = []
     resultMFO = []
     for f in args.file:
         print('Evaluating %s.\n' % f.name)
-        resulthandle = open("./results/%s_results.txt" % os.path.basename(f.name).split('.')[0],'w')
+        resulthandle = open("./results/%s_%s_%s_results.txt" % (os.path.basename(f.name).split('.')[0],args.mode,args.type),'w')
         #first split the prediction file into three ontologies
         all_pred = GOPred()
         pred_path = f
@@ -194,13 +210,17 @@ if __name__=='__main__':
             res.TYPE = typeConverter(args.type)
             print('ontology: %s\n' % onto)
             res.ontology = onto
-            b = read_benchmark(onto, taxon_name_converter(res.taxon),args.type,benchmarkFolder,obo_path)
+            b,obocountDict = read_benchmark(onto, taxon_name_converter(res.taxon),args.type,benchmarkFolder,obo_path)
+            if b==None:
+                sys.stderr.write('No benchmark is available for the input species and type')
             path = os.path.splitext(pred_path.name)[0]+'_'+onto.upper()+'.txt'
-            c = PrecREC(b,path)
+            c = PrecREC(b,path,obocountDict[onto])
             if c.exist:
                 fm = c.Fmax_output(args.mode)
                 res.precision = fm[0]
+                print(res.precision)
                 res.recall = fm[1]
+                print(res.recall)
                 res.opt = fm[2]
                 res.thres = fm[3]
                 res.coverage = fm[4]
@@ -211,16 +231,14 @@ if __name__=='__main__':
                 print('coverage: %s\n' % res.coverage)
                 plotSingle(res,args.smooth)
                 resulthandle.write('%s:\t%s\t%s\t%s\n' % (onto,res.opt,res.thres,res.coverage))
-            if onto=='bpo':
-                resultBPO.append(res)
-            elif onto=='cco':
-                resultCCO.append(res)
-            elif onto=='mfo':
-                resultMFO.append(res)
-
+                if onto=='bpo':
+                    resultBPO.append(res)
+                elif onto=='cco':
+                    resultCCO.append(res)
+                elif onto=='mfo':
+                    resultMFO.append(res)
         resulthandle.close()
-    print(num)
-    if num>1:
-        plotMultiple(args.title+'_BPO', resultBPO,args.smooth)
-        plotMultiple(args.title+'_CCO', resultCCO,args.smooth)
-        plotMultiple(args.title+'_MFO', resultMFO,args.smooth)
+    #print(num)
+    plotMultiple(args.title+'_BPO', resultBPO,args.smooth)
+    plotMultiple(args.title+'_CCO', resultCCO,args.smooth)
+    plotMultiple(args.title+'_MFO', resultMFO,args.smooth)

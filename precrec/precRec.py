@@ -19,20 +19,33 @@ from Ontology.IO import OboIO
 
 
 
-legal_species = ["all",
-            "eukarya",
-            "prokarya",
-            "ARATH",
-            "DANRE",
-            "DICDI",
-            "DROME",
-            "ECOLI",
-            "HUMAN",
-            "MOUSE",
-            "PSEAE",
-            "RAT",
-            "SCHPO",
-            "YEAST"]
+legal_species = [
+"all",
+"eukarya",
+"prokarya",
+'HELPY',
+ 'ECOLI',
+ 'RAT',
+ 'DANRE',
+ 'SULSO',
+ 'DROME',
+ 'PSEPK',
+ 'STRPN',
+ 'PSEAE',
+ 'BACSU',
+ 'MYCGE',
+ 'HUMAN',
+ 'METJA',
+ 'DICDI',
+ 'YEAST',
+ 'SCHPO',
+ 'ARATH',
+ 'XENLA',
+ 'MOUSE',
+ 'PSESM',
+ 'SALTY',
+ 'CANAX',
+ 'SALCH']
 legal_types = ["type1","type2","all"]
 legal_subtypes = ["easy","hard"]
 #easy and hard are only in NK benchmarks!!!!
@@ -84,6 +97,7 @@ def go_ontology_ancestors_split_write(obo_path):
     obo_mfo_out.close()
     obo_bpo_out.close()
     obo_cco_out.close()
+    return([len(bpo_terms),len(cco_terms),len(mfo_terms)])
     
     
     
@@ -136,22 +150,6 @@ def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
     #Ancestor files here are precomputed
     #To get the ancestor files, use preprocess.py (go_ontology_ancestors_split_write)
     #last updated 12/12/2016
-    #TODO: hpo ancestor file?
-    #TODO: changed relative path to within CAFAAssess, need to change the whole package!
-    legal_species = ["all",
-            "eukarya",
-            "prokarya",
-            "ARATH",
-            "DANRE",
-            "DICDI",
-            "DROME",
-            "ECOLI",
-            "HUMAN",
-            "MOUSE",
-            "PSEAE",
-            "RAT",
-            "SCHPO",
-            "YEAST"]
     legal_types = ["type1","type2","typex"]
     legal_subtypes = ["easy","hard"]
     legal_namespace = ["bpo","mfo","cco","hpo"] 
@@ -159,39 +157,45 @@ def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
     if namespace not in legal_namespace:
         sys.stderr.write("Namespace not accepted, choose from 'bpo', 'cco', 'mfo' and 'hpo'\n")
     elif (species not in legal_species) and (species not in legal_subtypes):
-        sys.stderr.write('Species not accepted, choose from "easy", "hard", "eukarya","prokarya","ARATH","DANRE","DICDI","DROME","ECOLI","HUMAN","MOUSE","PSEAE","RAT","SCHPO" and"YEAST"\n')
+        sys.stderr.write('Species not accepted')
     elif types not in legal_types:
         sys.stderr.write('Type not accepted, choose from "type1","type2" and "typex"\n')
     else:
         matchname = namespace+'_'+species+'_'+types+'.txt'
     #generate ancestor files
-    go_ontology_ancestors_split_write(obopath)
+    obocounts = go_ontology_ancestors_split_write(obopath)
+    obocountDict={'bpo':obocounts[0],'cco':obocounts[1],'mfo':obocounts[2]}
     #ontology-specific calculations
     if namespace == 'bpo':
-        full_benchmark_path = fullbenchmarkfolder+'leafonly_BPO.txt'
+        full_benchmark_path = fullbenchmarkfolder+'/groundtruth/'+'leafonly_BPO.txt'
         ancestor_path = os.path.splitext(obopath)[0]+"_ancestors_bpo.txt"
     elif namespace =='cco':
-        full_benchmark_path = fullbenchmarkfolder+'leafonly_CCO.txt'
+        full_benchmark_path = fullbenchmarkfolder+'/groundtruth/'+'leafonly_CCO.txt'
         ancestor_path = os.path.splitext(obopath)[0]+"_ancestors_cco.txt"
     elif namespace == 'mfo':
-        full_benchmark_path = fullbenchmarkfolder+'leafonly_MFO.txt'
+        full_benchmark_path = fullbenchmarkfolder+'/groundtruth/'+'leafonly_MFO.txt'
         ancestor_path = os.path.splitext(obopath)[0]+"_ancestors_mfo.txt"
-    handle = open(fullbenchmarkfolder+'/lists/'+matchname, 'r')
-    prots  = set()
-    for line in handle:
-        prots.add(line.strip())
-    handle.close()
-    tempfilename = 'temp_%s_%s_%s.txt' % (namespace, species,types)
-    tempfile = open(fullbenchmarkfolder+tempfilename ,'w')
-    for line in open(full_benchmark_path,'r'):
-        prot = line.split('\t')[0]
-        if prot in prots:
-            tempfile.write(line)
-    tempfile.close()
-    bench = benchmark(ancestor_path,tempfile.name)
-    bench.propagate()
-    os.remove(tempfile.name)
-    return bench
+    benchmarkListPath = fullbenchmarkfolder+'/lists/'+matchname
+    if os.path.isfile(benchmarkListPath) and os.path.getsize(benchmarkListPath)>0:
+        handle = open(fullbenchmarkfolder+'/lists/'+matchname, 'r')
+        prots  = set()
+        for line in handle:
+            prots.add(line.strip())
+        handle.close()
+        tempfilename = 'temp_%s_%s_%s.txt' % (namespace, species,types)
+        tempfile = open(fullbenchmarkfolder+'/'+tempfilename ,'w')
+        for line in open(full_benchmark_path,'r'):
+            prot = line.split('\t')[0]
+            if prot in prots:
+                tempfile.write(line)
+        tempfile.close()
+        bench = benchmark(ancestor_path,tempfile.name)
+        bench.propagate()
+        os.remove(tempfile.name)
+    else:
+        print('Benchmark set is empty.\n')
+        bench=None
+    return(bench, obocountDict)
 
 class result:    
     def __init__(self):
@@ -225,12 +229,13 @@ class PrecREC:
     updated: 12/01/2016
     A class for doing precision recall calculations
     '''
-    def __init__(self, benchmark, os_pred_path):
+    def __init__(self, benchmark, os_pred_path,obocounts):
         '''
         benchmark is an instance of the benchmark class
         os_pred_path should be an !ontology-specific! prediction file separated in GOPred (without headers)
         countb is the number of predicted proteins in this file that are in the benchmark file (for coverage)
         counta is the number of proteins with at least one term above threshold
+        obocounts is the total number of terms in the ontology
         '''
         self.exist = True
         self.ancestors = benchmark.ancestors
@@ -241,7 +246,7 @@ class PrecREC:
         self.countc = len(self.true_terms)
         self.data = defaultdict(list)
         self.predicted_bench = defaultdict(defaultdict)
-        
+        self.obocount = obocounts
         #predicted_base_terms is the same as self.data
         #No need creating another dictionary
         
@@ -255,6 +260,7 @@ class PrecREC:
         #value: tuple(confidence, True/False) whether in true terms or not
         #take the largest confidence
         #Take care of obsolete terms as well
+        #self.obocount is the total number of terms in the ontology
         
         #Read in prediction file        
         if os.path.getsize(os_pred_path) > 0:
@@ -264,11 +270,12 @@ class PrecREC:
             
             #Propagated prediction
             for prot in self.data:
-                if benchmark.true_terms[prot]:
+                if self.true_terms[prot]:
                     '''
                     benchmark.true_terms[prot] not an empty set
                     The protein is in the benchmark file
-                    i.e. gained experimental annotation
+                    i.e. gained experimental annota
+                    
                     '''
                     self.countb += 1
                     for tc in self.data[prot]:
@@ -304,6 +311,9 @@ class PrecREC:
                                         self.__update_confidence__(prot,newtc)
                                     else:
                                         self.predicted_bench[prot][ancterm]=self.__compare__(prot,newtc)
+            if self.countb==0:
+                self.exist = False
+                print("No protein in this predicted set became a benchmark\n")
         else:
             self.exist=False
             print('No prediction made in this ontology.\n')
@@ -356,18 +366,21 @@ class PrecREC:
                 #print(term)
                 if self.predicted_bench[protein][term][1] :
                     TP+=1
+        if threshold==0:
+            #updated 20170609
+            #at threshold 0, every term (propagated) in the ontology is considered predicted
+            #so TP is all the true terms in the benchmakr
+            #recall=1
+            #precision is TP over all terms in the ontology
+            TP = float(len(self.true_terms[protein]))
+            count = self.obocount
         try:
             precision = TP/count
             #print(count)
             #print(TP)
         except ZeroDivisionError:
             precision=None
-        if threshold==0:
-            #At threshold 0, everything is considered predicted, therefore guarantee perfect recall
-            #updated 20170405
-            recall=1
-        else:
-            recall = TP/len(self.true_terms[protein])
+        recall = TP/len(self.true_terms[protein])
         #recall should not have zerodivision problem
         #since if self.predicted_bench[protein] is not None
         #This protein is in the benchmark file
@@ -392,7 +405,7 @@ class PrecREC:
                 prec +=a
                 self.counta[threshold]+=1
             if b is not None:
-                rec +=b      
+                rec +=b   
         if mode=='partial':
             try:
                 recall = rec/self.countb
@@ -402,13 +415,13 @@ class PrecREC:
         elif mode=='full':
             try:
                 recall = rec/self.countc
-            except:
+            except ZeroDivisionError:
                 recall = 0
                 print("No protein in this benchmark set\n")
         try:
             precision = prec/self.counta[threshold]   
         except ZeroDivisionError:
-            precision = 0
+            precision = None
             print("No prediction is made above the %.2f threshold\n" % threshold)
         return (precision, recall)
     
@@ -438,17 +451,22 @@ class PrecREC:
         f_thres = 0.00
         pre = []
         rec = []
+        #print(self.precision_recall(0,mode))
         for thres in numpy.arange(0.00,1.01,0.01,float):
             thres = numpy.around(thres,decimals=2)
+            print(thres)
             a,b = self.precision_recall(thres,mode)
-            if a==0:
+            if a==None:
                 #No prediction above this threshold 
                 break
             else:
                 pre.append(a)
                 rec.append(b)
-                f = 2*a*b/(a+b)
-            if f>=fmax:
+                try:
+                    f = 2*a*b/(a+b)
+                except ZeroDivisionError:
+                    f = None
+            if f!=None and f>=fmax:
                 fmax = f
                 f_thres = thres
         print("Number of points in the P-R plot is %s\n" % len(pre))
