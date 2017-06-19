@@ -231,6 +231,8 @@ if __name__=='__main__':
                 print('coverage: %s\n' % res.coverage)
                 plotSingle(res,args.smooth)
                 resulthandle.write('%s:\t%s\t%s\t%s\n' % (onto,res.opt,res.thres,res.coverage))
+                resulthandle.write('%s:\t%s\n') % (onto, res.precision)
+                resulthandle.write('%s:\t%s\n') % (onto, res.recall)
                 if onto=='bpo':
                     resultBPO.append(res)
                 elif onto=='cco':
