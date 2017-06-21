@@ -53,22 +53,6 @@ def taxon_name_converter(taxonID):
     return taxonTable[taxonID]    
  
 
-def curveSmooth(result):
-    #This function removes a p-r pair if there exists another p-r pair that's greater in both precision and recall
-    #precision and recall should both be lists of the same length
-    precision = []
-    recall = []
-    for i in range(len(result.precision)):
-        remove = False
-        for j in range(i):
-            if result.precision[i]<result.precision[j] and result.recall[i]<result.recall[j]:
-                remove = True
-                break
-        if not remove:
-            precision.append(result.precision[i])
-            recall.append(result.recall[i])
-    return([precision,recall])
-
 def typeConverter(oldType):
     if oldType=='type1':
         newType = 'NK'
@@ -110,56 +94,43 @@ if __name__=='__main__':
     
     num = len(args.file)
     #print('Number of predictions supplied: %s\n' % num)
-    resultBPO = []
-    resultCCO = []
-    resultMFO = []
-    for f in args.file:
-        print('Evaluating %s.\n' % f.name)
-        resulthandle = open("./results/%s_%s_%s_results.txt" % (os.path.basename(f.name).split('.')[0],args.mode,args.type),'w')
-        #first split the prediction file into three ontologies
-        all_pred = GOPred()
-        pred_path = f
-        obo_path = args.obo_path
-        benchmarkFolder = args.bfolder
-        #all_pred.read_and_split_and_write(obo_path,pred_path)
-        resulthandle.write('%s:\t%s\t%s\t%s\n' % ('Ontology','Fmax','Threshold','Coverage'))
-        #parse file name 
-        #namefields = os.path.basename(pred_path.name).split('.')[0].split('_')
-            
-        #read benchmark for three ontologies
-        for onto in ['bpo','cco','mfo']:
-            res = result()
-            res.read_from_GOPred(all_pred)
-            res.mode = args.mode
-            res.TYPE = typeConverter(args.type)
-            print('ontology: %s\n' % onto)
-            res.ontology = onto
-            b,obocountDict = read_benchmark(onto, taxon_name_converter(res.taxon),args.type,benchmarkFolder,obo_path)
-            if b==None:
-                sys.stderr.write('No benchmark is available for the input species and type')
-            path = os.path.splitext(pred_path.name)[0]+'_'+onto.upper()+'.txt'
-            c = PrecREC(b,path,obocountDict[onto])
-            if c.exist:
-                fm = c.Fmax_output(args.mode)
-                res.precision = fm[0]
-                print(res.precision)
-                res.recall = fm[1]
-                print(res.recall)
-                res.opt = fm[2]
-                res.thres = fm[3]
-                res.coverage = fm[4]
-                #fm.append(os.path.splitext(os.path.basename(pred_path.name))[0])
-                #print(fm)
-                print('fmax: %s\n' % res.opt)
-                print('threshold giving fmax: %s\n' % res.thres)
-                print('coverage: %s\n' % res.coverage)
-                resulthandle.write('%s:\t%s\t%s\t%s\n' % (onto,res.opt,res.thres,res.coverage))
-                resulthandle.write('%s:\t%s\n') % (onto, res.precision)
-                resulthandle.write('%s:\t%s\n') % (onto, res.recall)
-                if onto=='bpo':
-                    resultBPO.append(res)
-                elif onto=='cco':
-                    resultCCO.append(res)
-                elif onto=='mfo':
-                    resultMFO.append(res)
+    f=args.file
+    print('Evaluating %s.\n' % f.name)
+    resulthandle = open("./results/%s_%s_%s_results.txt" % (os.path.basename(f.name).split('.')[0],args.mode,args.type),'w')
+    #first split the prediction file into three ontologies
+    #all_pred = GOPred()
+    pred_path = f
+    obo_path = args.obo_path
+    benchmarkFolder = args.bfolder
+    #all_pred.read_and_split_and_write(obo_path,pred_path)
+    resulthandle.write('%s:\t%s\t%s\t%s\n' % ('Ontology','Fmax','Threshold','Coverage'))
+    #parse file name 
+    #namefields = os.path.basename(pred_path.name).split('.')[0].split('_')
+        
+    onto = os.path.splitext(pred_path.name)[0].split('_')[3]
+    taxon = os.path.splitext(pred_path.name)[0].split('_')[2]
+    #res.read_from_GOPred(all_pred)
+    print('ontology: %s\n' % onto)
+    b,obocountDict = read_benchmark(onto, taxon_name_converter(taxon),args.type,benchmarkFolder,obo_path)
+    if b==None:
+        sys.stderr.write('No benchmark is available for the input species and type')
+    path = os.path.splitext(pred_path.name)[0]+'_'+onto.upper()+'.txt'
+    c = PrecREC(b,path,obocountDict[onto])
+    if c.exist:
+        fm = c.Fmax_output(args.mode)
+        precision=fm[0]
+        print(precision)
+        recall=fm[1]
+        print(recall)
+        opt = fm[2]
+        thres = fm[3]
+        coverage = fm[4]
+        #fm.append(os.path.splitext(os.path.basename(pred_path.name))[0])
+        #print(fm)
+        print('fmax: %s\n' % opt)
+        print('threshold giving fmax: %s\n' % thres)
+        print('coverage: %s\n' % coverage)
+        resulthandle.write('%s:\t%s\t%s\t%s\n' % (onto,opt,thres,coverage))
+        resulthandle.write('%s:\t%s\n') % (onto, precision)
+        resulthandle.write('%s:\t%s\n') % (onto, recall)
         resulthandle.close()

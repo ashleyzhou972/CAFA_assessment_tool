@@ -16,7 +16,8 @@ import matplotlib
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 import errno    
-import seaborn as sns
+import gc
+#import seaborn as sns
 
 def mkdir_p(path):
     try:
@@ -170,7 +171,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     mkdir_p('./plots/')
     mkdir_p('./results/')
-    
+    mkdir_p('./pr_rc/')
     num = len(args.file)
     print('Number of predictions supplied: %s\n' % num)
     resultBPO = []
@@ -179,6 +180,8 @@ if __name__=='__main__':
     for f in args.file:
         print('Evaluating %s.\n' % f.name)
         resulthandle = open("./results/%s_%s_%s_results.txt" % (os.path.basename(f.name).split('.')[0],args.mode,args.type),'w')
+        prhandle = open("./pr_rc/%s_%s_%s_prrc.txt" % (os.path.basename(f.name).split('.')[0],args.mode,args.type),'w')
+
         #first split the prediction file into three ontologies
         all_pred = GOPred()
         pred_path = f
@@ -186,6 +189,8 @@ if __name__=='__main__':
         benchmarkFolder = args.bfolder
         all_pred.read_and_split_and_write(obo_path,pred_path)
         info = [all_pred.author,all_pred.model,all_pred.keywords,all_pred.taxon]
+        del all_pred
+        gc.collect()
         print('AUTHOR: %s\n' % info[0])
         resulthandle.write('AUTHOR:%s\n' % info[0])
         print('MODEL: %s\n' % info[1])
@@ -200,12 +205,16 @@ if __name__=='__main__':
         resulthandle.write('mode:%s\n' % args.mode)
         resulthandle.write('%s:\t%s\t%s\t%s\n' % ('Ontology','Fmax','Threshold','Coverage'))
         #parse file name 
-        #namefields = os.path.basename(pred_path.name).split('.')[0].split('_')
-            
+        #namefields = os.path.basename(pred_path.name).split('.')[0].split('_')    
         #read benchmark for three ontologies
         for onto in ['bpo','cco','mfo']:
             res = result()
-            res.read_from_GOPred(all_pred)
+           # res.read_from_GOPred(all_pred)
+            #all_pred has been deleted to free memory
+            res.author = info[0]
+            res.taxon = info[3]
+            res.model = info[1]
+            res.keywords = info[2][0]
             res.mode = args.mode
             res.TYPE = typeConverter(args.type)
             print('ontology: %s\n' % onto)
@@ -229,10 +238,11 @@ if __name__=='__main__':
                 print('fmax: %s\n' % res.opt)
                 print('threshold giving fmax: %s\n' % res.thres)
                 print('coverage: %s\n' % res.coverage)
-                plotSingle(res,args.smooth)
+                #plotSingle(res,args.smooth)
                 resulthandle.write('%s:\t%s\t%s\t%s\n' % (onto,res.opt,res.thres,res.coverage))
-                resulthandle.write('%s:\t%s\n') % (onto, res.precision)
-                resulthandle.write('%s:\t%s\n') % (onto, res.recall)
+                prhandle.write('>%s\n' % onto)
+                prhandle.write(" ".join([str(i) for i in res.precision]) +'\n')
+                prhandle.write(" ".join([str(i) for i in res.recall]) +'\n') 
                 if onto=='bpo':
                     resultBPO.append(res)
                 elif onto=='cco':
@@ -240,7 +250,8 @@ if __name__=='__main__':
                 elif onto=='mfo':
                     resultMFO.append(res)
         resulthandle.close()
+        prhandle.close()
     #print(num)
-    plotMultiple(args.title+'_BPO', resultBPO,args.smooth)
-    plotMultiple(args.title+'_CCO', resultCCO,args.smooth)
-    plotMultiple(args.title+'_MFO', resultMFO,args.smooth)
+    #plotMultiple(args.title+'_BPO', resultBPO,args.smooth)
+    #plotMultiple(args.title+'_CCO', resultCCO,args.smooth)
+    #plotMultiple(args.title+'_MFO', resultMFO,args.smooth)
