@@ -132,9 +132,8 @@ class benchmark:
     def propagate(self):
         #Key: protein
         #Value: set of benchmark propagated terms
-        self.true_terms = dict()
+        self.true_terms = defaultdict(set)
         for protein in self.true_base_terms:
-            self.true_terms[protein] = set()
             for term in self.true_base_terms[protein]:
                 try:
                     
@@ -271,14 +270,11 @@ class PrecREC:
             
             #Propagated prediction
             for prot in self.data:
-                if prot in self.true_terms.keys(): 
+                if self.true_terms[prot]:
                     '''
                     benchmark.true_terms[prot] not an empty set
                     The protein is in the benchmark file
-                    i.e. gained experimental annotai
-                    update: 20170620
-                    benchmark.true_terms is a dictionary (instead of a defaultdict)
-                    is prot is in keys, the prot in in the benchmark set
+                    i.e. gained experimental annota
                     
                     '''
                     self.countb += 1
@@ -458,7 +454,7 @@ class PrecREC:
         #print(self.precision_recall(0,mode))
         for thres in numpy.arange(0.00,1.01,0.01,float):
             thres = numpy.around(thres,decimals=2)
-#            print(thres)
+            #print(thres)
             a,b = self.precision_recall(thres,mode)
             if a==None:
                 #No prediction above this threshold 
