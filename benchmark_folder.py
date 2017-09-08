@@ -1,9 +1,7 @@
+#!/home/nzhou/anaconda2/python
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jun  5 16:20:45 2017
-Map generated benchmark files with Uniprot Accession IDs to CAFA IDs
-@author: nzhou
-"""
+
+import ID_conversion.ID_conversion
 import os
 import argparse
 import gzip
