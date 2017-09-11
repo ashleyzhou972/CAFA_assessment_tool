@@ -31,18 +31,7 @@ file_mapping_available = ['3702',
 
 #For the rest of the species, we use the uniprot web conversion tool
 
-def write_uniprot_idMapping(idmappingfile,taxon):
-    #This writes the lines in uniprot id mapping file that maps accession to ID
-    #File written still too large to store in memory
-    #NOT IN USE
-    outhandle = open('./uniprot_ac_to_id_'+str(taxon)+'.map','w')
-    for line in gzip(idmappingfile,'rb'):
-        fields = line.strip().split('\t')
-        if fields[1]=='UniProtKB-ID':
-            outhandle.write(line)
-    outhandle.close()
-    print('Done!\n')
-    
+   
 def read_uniprot_IdMapping(idmappingfile, taxon):
     #Run only once please
     #This function returns a dictionary
@@ -174,4 +163,3 @@ if __name__=='__main__':
     parser.add_argument('-o','--o',dest='onto',help='Input ontology',choices=['bpo','cco','mfo'],required=True)
     args = parser.parse_args()
     run(args.benchFolder,args.species,args.file,args.type,args.onto)
-    
