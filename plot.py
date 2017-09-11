@@ -1,4 +1,4 @@
-#!/home/nzhou/anaconda2/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jun 27 11:32:54 2017

@@ -1,6 +1,6 @@
 ---
 assess:
-        file: ZZZ_1_10090.txt 
+        file: ZZZ_1_9606.txt 
         #Only One prediction file allowed
         obo: ./precrec/go_20170429.obo
         benchmark: ./precrec/benchmark/
@@ -10,7 +10,7 @@ plot:
         title: 9606
         smooth: N
         file1: ZZZ_1_9606
-        file2: ZZZ_2_9606
+        #file2: ZZZ_2_9606
         #file3: XXX_1_9606
         # Above files will be shown on one plot
         # We recommend only plotting results for the same species together

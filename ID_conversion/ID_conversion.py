@@ -1,4 +1,4 @@
-#!/home/nzhou/anaconda2/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #Not available for 208963 and 7227

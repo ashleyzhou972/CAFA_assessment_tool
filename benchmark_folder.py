@@ -1,4 +1,4 @@
-#!/home/nzhou/anaconda2/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import ID_conversion.ID_conversion
