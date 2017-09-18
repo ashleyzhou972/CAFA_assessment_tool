@@ -11,11 +11,13 @@ For bug reports, comments or questions, please email nzhou[AT]iastate.edu.
 
 ## Dependencies
  - Python 2.7 or Python 3
- - Python packages:
- 1. Biopython (Bio)
- 2. yaml
- 3. matplotlib 
- 4. seaborn
+ - Python packages can be downloaded from their sites or installed from repositories:
+    1. [Biopython](http://biopython.org)
+    2. [yaml](http://www.yaml.org/download.html)
+    3. [matplotlib](https://matplotlib.org/) 
+    4. [seaborn](https://seaborn.pydata.org/)
+    
+`$ sudo apt install python-biopython python-yaml python-matplotlib python-seaborn`
 
 ## Main Functions
  We provide two main functions to assist in the evaluation of GO-term prediction within the scope of CAFA, the main assessment function and the plot function.
