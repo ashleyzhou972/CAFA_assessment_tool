@@ -233,20 +233,22 @@ class PrecREC:
         '''
         benchmark is an instance of the benchmark class
         os_pred_path should be an !ontology-specific! prediction file separated in GOPred (without headers)
-        countb is the number of predicted proteins in this file that are in the benchmark file (for coverage)
-        counta is the number of proteins with at least one term above threshold
+        count_predictions_in_benchmark is the number of predicted proteins in this file that are in the benchmark file (for coverage)
+        count_above_threshold is the number of proteins with at least one term above threshold
         obocounts is the total number of terms in the ontology
+        ran is a flag corresponding if the program has been run, allowing print functions
         '''
-        self.exist = True
-        self.ancestors = benchmark.ancestors
-        self.true_terms = benchmark.true_terms
-        self.obsolete = set()
-        self.counta = defaultdict()
-        self.countb = 0
-        self.countc = len(self.true_terms)
-        self.data = defaultdict(list)
-        self.predicted_bench = defaultdict(defaultdict)
-        self.obocount = obocounts
+        self.exist                            = True
+        self.ancestors                        = benchmark.ancestors
+        self.true_terms                       = benchmark.true_terms
+        self.obsolete                         = set()
+        self.count_above_threshold            = defaultdict()
+        self.count_predictions_in_benchmark   = 0
+        self.count_true_terms                 = len(self.true_terms)
+        self.data                             = defaultdict(list)
+        self.predicted_bench                  = defaultdict(defaultdict)
+        self.obocount                         = obocounts
+        self.ran                              = False
         #predicted_base_terms is the same as self.data
         #No need creating another dictionary
         
@@ -269,16 +271,16 @@ class PrecREC:
                 self.data[fields[0]].append({'term': fields[1], 'confidence': float(fields[2])})
             
             #Propagated prediction
-            for prot in self.data:
-                if self.true_terms[prot]:
+            for protein in self.data:
+                if self.true_terms[protein]:
                     '''
-                    benchmark.true_terms[prot] not an empty set
+                    benchmark.true_terms[protein] not an empty set
                     The protein is in the benchmark file
                     i.e. gained experimental annota
                     
                     '''
-                    self.countb += 1
-                    for tc in self.data[prot]:
+                    self.count_predictions_in_benchmark += 1
+                    for tc in self.data[protein]:
                         try:
                             ancterms = self.ancestors[tc['term']].difference(root_terms)
                             #delete root terms
@@ -289,12 +291,12 @@ class PrecREC:
                             #sys.stderr.write("%s not found\n" % tc['term'])
                             self.obsolete.add(tc['term'])
                             continue
-                        if tc['term'] in self.predicted_bench[prot]:
+                        if tc['term'] in self.predicted_bench[protein]:
                             #This term has already been added
                             #maybe as an ancestor of other terms
                             #update confidence with the maximum one
                             #propagate and update all ancestor confidence
-                            self.__update_confidence__(prot,tc)
+                            self.update_confidence(protein,tc)
                         else:
                             #add this term to self.predicted_bench
                             #add confidence, and compare with self.true_terms
@@ -304,45 +306,55 @@ class PrecREC:
                             if tc['term'] not in root_terms:
                                 #Delete root terms!
                                 #Modified on 20170217
-                                self.predicted_bench[prot][tc['term']]=self.__compare__(prot,tc)
+                                self.predicted_bench[protein][tc['term']]=self.compare(protein,tc)
                                 for ancterm in ancterms:
                                     newtc = {'term':ancterm,'confidence':tc['confidence']}
-                                    if ancterm in self.predicted_bench[prot]:
-                                        self.__update_confidence__(prot,newtc)
+                                    if ancterm in self.predicted_bench[protein]:
+                                        self.update_confidence(protein,newtc)
                                     else:
-                                        self.predicted_bench[prot][ancterm]=self.__compare__(prot,newtc)
-            if self.countb==0:
+                                        self.predicted_bench[protein][ancterm]=self.compare(protein,newtc)
+            if self.count_predictions_in_benchmark==0:
                 self.exist = False
                 print("No protein in this predicted set became a benchmark\n")
         else:
             self.exist=False
             print('No prediction made in this ontology.\n')
+            
+    def coverage(self):
+        '''
+        Helper function to determine the coverage ... 
+        (Fill in with better explaination of what is covered -
+        Can't remeber off hand)
+        '''
+        return float(self.count_predictions_in_benchmark)/self.count_true_terms
 
-    def __update_confidence__(self,prot,tc):
+    def update_confidence(self,protein,tc):
         '''
         tc is a dictionary with {'confidence':0.57,'term':'GO:006644'}
-        prot is a protein
         This function compares the confidence value in tc, and if it's larger than
         the confidence that's been added for term in self.predicted
         we update that confidence
         It also updates all propagated terms of tc
         '''
-        if tc['confidence']>self.predicted_bench[prot][tc['term']][0]:
-            self.predicted_bench[prot][tc['term']][0]=tc['confidence']
+        #Defined for readablity
+        confidence = tc['confidence'] 
+        
+        if confidence > self.predicted_bench[protein][tc['term']][0]:
+            self.predicted_bench[protein][tc['term']][0] = confidence
+            
             for ancterm in self.ancestors[tc['term']].difference(root_terms):
-                #added difference 20170219
-                if tc['confidence']>self.predicted_bench[prot][ancterm][0]:
-                    self.predicted_bench[prot][ancterm][0]=tc['confidence']
+                
+                if confidence > self.predicted_bench[protein][ancterm][0]:
+                    self.predicted_bench[protein][ancterm][0] = confidence
                     
                     
-    def __compare__(self,prot,tc):
+    def compare(self,protein,tc):
         '''
         tc is a dictionary with {'confidence':0.57,'term':'GO:006644'}
-        prot is a protein
         This function compares if tc['term'] is in self.true_terms
         returns a list ["confidence","True/False"]
         '''
-        if tc['term'] in self.true_terms[prot]:
+        if tc['term'] in self.true_terms[protein]:
             return [tc['confidence'],True]
         else:
             return [tc['confidence'],False]
@@ -355,125 +367,138 @@ class PrecREC:
         return(self.obsolete)
 
     def term_precision_recall(self,threshold,protein):
-        #This function calculates the precision recall of a single protein
-        TP = 0.0
-        count = 0
+        '''
+           This function calculates the precision recall of a single protein
+        '''        
+        #True Positive
+        TP = 0
         #count is to count how many terms are above the threshold
-        for term in self.predicted_bench[protein]:
-            if self.predicted_bench[protein][term][0]>=threshold:
-                #greater or equal to
-                count+=1
-                #print(term)
-                if self.predicted_bench[protein][term][1] :
-                    TP+=1
-        if threshold==0:
-            #updated 20170609
-            #at threshold 0, every term (propagated) in the ontology is considered predicted
+        count = 0
+        
+        if threshold == 0:
+            #At threshold 0, every term (propagated) in the ontology is considered predicted
             #so TP is all the true terms in the benchmakr
             #recall=1
             #precision is TP over all terms in the ontology
             TP = float(len(self.true_terms[protein]))
-            count = self.obocount
+            count = self.obocount        
+        else:
+            for term in self.predicted_bench[protein]:
+                #If it is above the threshold, increment the count
+                if self.predicted_bench[protein][term][0] >= threshold:
+                    count += 1
+                    #If it is actually True, increment TP
+                    if self.predicted_bench[protein][term][1] :
+                        TP += 1
+        #Find PR: TP / (TP + FP)
         try:
-            precision = TP/count
-            #print(count)
-            #print(TP)
+            precision = TP / count 
         except ZeroDivisionError:
-            precision=None
+            precision = None
+        #Find RC: TP (TP + FN)
         recall = TP/len(self.true_terms[protein])
-        #recall should not have zerodivision problem
-        #since if self.predicted_bench[protein] is not None
-        #This protein is in the benchmark file
-        #i.e. gained experimental annotation
-        #len(self.true_terms[protein]) should not be 0
+        #Safe becuase protein is in the benchmark file
         return (precision, recall, count , TP)
 
                         
     def precision_recall(self,threshold,mode):
         '''
-        this calculates the overall (average) precision recall of the team, given a threshold,
-        For one prediction file
-        mode = 'full': recall is averaged over all benchmark proteins, those not predicted have 0 recall
-        mode = 'partial': recall is averaged over all benchmark proteins that are predicted
+        this calculates the overall (average) precision recall of the team, 
+        given a threshold,for one prediction file
+        mode = 'full'   :  recall is averaged over all benchmark proteins, unpredicted have 0 recall
+        mode = 'partial':  recall is averaged over all benchmark proteins that are predicted
         '''
-        prec = float(0)
-        self.counta[threshold] = 0
-        rec = float(0)
-        for prot in self.predicted_bench:
-            a,b = self.term_precision_recall(threshold,prot)[0:2]
-            if a is not None:
-                prec +=a
-                self.counta[threshold]+=1
-            if b is not None:
-                rec +=b   
+        PR = 0.0
+        self.count_above_threshold[threshold] = 0
+        RC = 0.0
+        for protein in self.predicted_bench:
+            pr,rc = self.term_precision_recall(threshold,protein)[0:2]
+            if pr is not None:
+                PR += pr
+                self.count_above_threshold[threshold] += 1
+            if rc is not None:
+                RC += rc   
+                
         if mode=='partial':
             try:
-                recall = rec/self.countb
+                recall = RC/self.count_predictions_in_benchmark
             except ZeroDivisionError:
                 recall = 0
                 print("No protein in this predicted set became benchmarks\n")
+                
         elif mode=='full':
             try:
-                recall = rec/self.countc
+                recall = RC/self.count_true_terms
             except ZeroDivisionError:
                 recall = 0
                 print("No protein in this benchmark set\n")
+                
         try:
-            precision = prec/self.counta[threshold]   
+            precision = PR/self.count_above_threshold[threshold]   
         except ZeroDivisionError:
             precision = None
             print("No prediction is made above the %.2f threshold\n" % threshold)
+           
+        #PRRC has run
+        self.ran = True
+        
         return (precision, recall)
     
-    def getNumProteins(self,threshold,mode):
-         
-        '''
-        run precision_recall first
-        '''         
-        print('number of benchmark proteins: %s\n'% len(self.true_terms))
-        #Those with not-None recall: 
-        #(predicted protein that are in benchmark, only one species per prediction file!! )
-        print ('number of predicted proteins that are in the benchmark file: %s\n' % self.countb)
-        #Those with not-None precision:
-        try:
-            print('number of proteins with at least one term above threshold: %s\n' % self.counta[threshold] )
-        except KeyError:
-            sys.stderr.write("Run precision_recall(%s) first\n" % str(threshold))
-            
+
     def Fmax_output(self,mode):
         '''
-        returns the fmax value AND outputs the precision-recall values for each threshold
-        This computes precision and recall for every threshold
+        Returns Fmax value, PRRC values for each threshold        
+        
+        Computes PRRC for every threshold
         mode can be 'full' or 'partial'
-        full mode
         '''
+        # Intialize Variables
         fmax = 0
-        f_thres = 0.00
-        pre = []
-        rec = []
-        #print(self.precision_recall(0,mode))
-        for thres in numpy.arange(0.00,1.01,0.01,float):
-            thres = numpy.around(thres,decimals=2)
-            #print(thres)
-            a,b = self.precision_recall(thres,mode)
-            if a==None:
-                #No prediction above this threshold 
+        fmax_threshold = 0.00
+        PR = []
+        RC = []
+        
+        # Run over all threshold values from 0 to 1, two signifigant digits
+        for threshold in numpy.arange(0.00,1.01,0.01,float):
+            
+            threshold = numpy.around(threshold,decimals=2)
+            # Run PRRC on given threshold
+            pr,rc = self.precision_recall(threshold,mode)
+            if pr is None:
+                # No prediction above this threshold 
                 break
             else:
-                pre.append(a)
-                rec.append(b)
+                PR.append(pr)
+                RC.append(rc)
+                # Find the F-value for this particular threshold
                 try:
-                    f = 2*a*b/(a+b)
+                    f = (2*pr*rc)/(pr+rc)
                 except ZeroDivisionError:
                     f = None
-            if f!=None and f>=fmax:
+                    
+            if f is not None and f >= fmax: ###########QUESTION##############
                 fmax = f
-                f_thres = thres
-        print("Number of points in the P-R plot is %s\n" % len(pre))
-        #coverage = float(self.countb)/sum([i!=set() for i in self.true_terms.values()])
-        coverage = float(self.countb)/self.countc
-        return ([pre,rec,fmax,f_thres,coverage])
-    
+                fmax_threshold = threshold
+        #Have found the Fmax at this point       
+        return ([PR,RC,fmax,fmax_threshold])
+        
+        
+    def printNumProteins(self,threshold,mode):
+        '''
+        Prints to console the various counts involved if PRRC has been run
+        '''    
+        if self.ran is True:
+            print('number of benchmark proteins: %s\n'% self.count_true_terms)
+            #Those with not-None recall: 
+            #(predicted protein that are in benchmark, only one species per prediction file!! )
+            print ('number of predicted proteins that are in the benchmark file: %s\n' % self.count_predictions_in_benchmark)
+            #Those with not-None precision:
+            print('number of proteins with at least one term above threshold: %s\n' % self.count_above_threshold[threshold] )
+            
+        else:
+            print ("Run precision_recall(%s) first\n" % str(threshold))
+            
+        
     def printConfidence(self,output_path):
         '''
         print confidence and True/False to a file

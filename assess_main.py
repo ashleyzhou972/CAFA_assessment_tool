@@ -133,7 +133,7 @@ if __name__=='__main__':
                     recall = fm[1]
                     opt = fm[2]
                     thres = fm[3]
-                    coverage = fm[4]
+                    coverage = c.coverage()
                     #fm.append(os.path.splitext(os.path.basename(pred_path.name))[0])
                     #print(fm)
                     print('fmax: %s\n' % opt)
