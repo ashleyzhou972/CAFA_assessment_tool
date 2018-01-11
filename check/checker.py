@@ -6,6 +6,8 @@
 """
 
 import sys
+import math
+import collections
 from collections import defaultdict
 import numpy
 import os
@@ -49,11 +51,14 @@ root_terms = ['GO:0008150','GO:0005575','GO:0003674']
 def go_ontology_split(ontology):
     """
     Split an GO obo file into three ontologies
+    
     by Dr. Friedberg
     """
+    
     mfo_terms = set({})
     bpo_terms = set({})
     cco_terms = set({})
+    
     for node in ontology.get_ids(): # loop over node IDs and alt_id's
         if ontology.namespace[node] == "molecular_function":
             mfo_terms.add(node)
@@ -70,29 +75,30 @@ def go_ontology_ancestors_split_write(obo_path):
     """
     Input: an OBO file
     Output: 3 files with ancestors
+    
     by Dr. Friedberg
     """
     
-    obo_bpo_out = open("%s_ancestors_bpo.txt" % (os.path.splitext(obo_path)[0]),"w")
-    obo_cco_out = open("%s_ancestors_cco.txt" % (os.path.splitext(obo_path)[0]),"w")
-    obo_mfo_out = open("%s_ancestors_mfo.txt" % (os.path.splitext(obo_path)[0]),"w")
+    obo_bpo_out = open("%s_ancestors_bpo.txt" % (os.path.splitext(obo_path)[0]), "w")
+    obo_cco_out = open("%s_ancestors_cco.txt" % (os.path.splitext(obo_path)[0]), "w")
+    obo_mfo_out = open("%s_ancestors_mfo.txt" % (os.path.splitext(obo_path)[0]), "w")
     obo_parser = OboIO.OboReader(open(obo_path))
     go = obo_parser.read()
     mfo_terms, bpo_terms, cco_terms = go_ontology_split(go)
     for term in mfo_terms:
         ancestors = go.get_ancestors(term)
-        obo_mfo_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        obo_mfo_out.write("%s\t%s\n" % (term, ",".join(ancestors)))
     for term in bpo_terms:
         ancestors = go.get_ancestors(term)
-        obo_bpo_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        obo_bpo_out.write("%s\t%s\n" % (term, ",".join(ancestors)))
     for term in cco_terms:
         ancestors = go.get_ancestors(term)
-        obo_cco_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        obo_cco_out.write("%s\t%s\n" % (term, ",".join(ancestors)))
 
     obo_mfo_out.close()
     obo_bpo_out.close()
     obo_cco_out.close()
-    return([len(bpo_terms),len(cco_terms),len(mfo_terms)])
+    return([len(bpo_terms), len(cco_terms), len(mfo_terms)])
     
     
 def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
@@ -100,21 +106,21 @@ def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
     Read Benchmark.
     
     Input:
-    namespace 
-    species
-    types
-    fullbenchmarkfolder
-    obopath
+    namespace --
+    species --
+    types --
+    fullbenchmarkfolder--
+    obopath --
     
     Output:
-    bench
-    obocountDict
+    bench --
+    obocountDict --
     '''
-    #Ancestor files here are precomputed
+    # Ancestor files here are precomputed
     legal_types = ["type1","type2","typex"]
     legal_subtypes = ["easy","hard"]
     legal_namespace = ["bpo","mfo","cco","hpo"] 
-    #fullbenchmarkfolder = './precrec/benchmark/'
+    # fullbenchmarkfolder = './precrec/benchmark/'
     if namespace not in legal_namespace:
         sys.stderr.write("Namespace not accepted, choose from 'bpo', 'cco', 'mfo' and 'hpo'\n")
     elif (species not in legal_species) and (species not in legal_subtypes):
@@ -125,7 +131,7 @@ def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
         matchname = namespace+'_'+species+'_'+types+'.txt'
     #generate ancestor files
     obocounts = go_ontology_ancestors_split_write(obopath)
-    obocountDict={'bpo':obocounts[0],'cco':obocounts[1],'mfo':obocounts[2]}
+    obocountDict = {'bpo':obocounts[0],'cco':obocounts[1],'mfo':obocounts[2]}
     #ontology-specific calculations
     if namespace == 'bpo':
         full_benchmark_path = fullbenchmarkfolder+'/groundtruth/'+'leafonly_BPO.txt'
@@ -136,37 +142,44 @@ def read_benchmark(namespace, species, types, fullbenchmarkfolder, obopath):
     elif namespace == 'mfo':
         full_benchmark_path = fullbenchmarkfolder+'/groundtruth/'+'leafonly_MFO.txt'
         ancestor_path = os.path.splitext(obopath)[0]+"_ancestors_mfo.txt"
+        
     benchmarkListPath = fullbenchmarkfolder+'/lists/'+matchname
     if os.path.isfile(benchmarkListPath) and os.path.getsize(benchmarkListPath)>0:
         handle = open(fullbenchmarkfolder+'/lists/'+matchname, 'r')
-        prots  = set()
+        proteins  = set()
         for line in handle:
-            prots.add(line.strip())
+            proteins.add(line.strip())
         handle.close()
-        tempfilename = 'temp_%s_%s_%s.txt' % (namespace, species,types)
-        tempfile = open(fullbenchmarkfolder+'/'+tempfilename ,'w')
+        tempfilename = 'temp_%s_%s_%s.txt' % (namespace, species, types)
+        tempfile = open(fullbenchmarkfolder+'/'+tempfilename , 'w')
         for line in open(full_benchmark_path,'r'):
-            prot = line.split('\t')[0]
-            if prot in prots:
+            protein = line.split('\t')[0]
+            if protein in proteins:
                 tempfile.write(line)
         tempfile.close()
-        bench = benchmark(ancestor_path,tempfile.name)
+        bench = benchmark(ancestor_path, tempfile.name)
         bench.propagate()
         os.remove(tempfile.name)
     else:
         print('Benchmark set is empty.\n')
-        bench=None
+        bench = None
     return(bench, obocountDict)   
     
+########################END OF FUNCTIONS OUTSIDE OF A CLASS ##############################
     
 class benchmark:
+    '''
+    
+    '''
+    
+    
     def __init__(self,ancestor_path,benchmark_path):
         '''
         Initialize the benchmark.
         
         Input: 
-        benchmark_path is ontology specific
-        ancestor_path is ontology specific
+        benchmark_path -- ontology specific file location
+        ancestor_path -- ontology specific file location
         '''
         
         #Key: protein
@@ -303,9 +316,7 @@ class Info:
             
             
     def coverage(self):
-        '''
-        Determine the coverage.        
-        '''
+        ''' Determine the coverage. '''
         
         return float(self.count_predictions_in_benchmark)/self.count_true_terms  
        
@@ -483,6 +494,10 @@ class IC:
         return results
     
     
+##################################################################################################
+##################################################################################################
+##################################################################################################    
+    
 class Fmax:
     '''
     F maximum
@@ -517,7 +532,7 @@ class Fmax:
             
             threshold = numpy.around(threshold, decimals = 2)
             # Run PRRC on given threshold
-            pr,rc = self.PRRC_average(info, threshold, mode)
+            pr, rc = self.PRRC_average(info, threshold, mode)
             if pr is None:
                 # No prediction above this threshold 
                 break
@@ -620,11 +635,133 @@ class Fmax:
         return (precision, recall)        
                     
     
+#####################################################################################################    
+    
 class WFmax(Fmax): # Will use parts of Fmax just using IC values
     '''
     Weighted F maximun
     '''
+    def ouput(self, info, mode):
+        '''
+        Calculate WFmax
+        '''
+        # Intialize Variables
+        wfmax = 0.0
+        wfmax_threshold = 0.0
+        WPR = []
+        WRC = []
+        
+        # Run over all threshold values from 0 to 1, two signifigant digits
+        for threshold in numpy.arange(0.00, 1.01, 0.01, float):
+            
+            threshold = numpy.around(threshold, decimals = 2)
+            # Run PRRC on given threshold
+            wpr, wrc = self.PRRC_average(info, threshold, mode)
+            if wpr is None:
+                # No prediction above this threshold 
+                break
+            else:
+                WPR.append(wpr)
+                WRC.append(wrc)
+                # Find the F-value for this particular threshold
+                try:
+                    wf = self.f(wpr, wrc)
+                except ZeroDivisionError:
+                    wf = None
+                    
+            if wf is not None and wf >= wfmax: ###########QUESTION##############
+                wfmax = wf
+                wfmax_threshold = threshold
+        #Have found the Fmax at this point       
+        return ([WPR, WRC, wfmax, wfmax_threshold])
+        
+        
+    def WPRRC_average(self, info, threshold, mode):
+        '''
+        Calculate the overall PRRC of file
+        
+        Input:
+        info --
+        threshold --
+        mode -- 
+        '''
+        
+        # Initialize Variables
+        WPR = 0.0
+        WRC = 0.0
+        info.count_above_threshold[threshold] = 0
+
+        for protein in info.predicted_bench:
+            wpr, wrc = self.WPRRC(info, threshold, protein)
+            if wpr is not None:
+                WPR += wpr
+                info.count_above_threshold[threshold] += 1
+            if wrc is not None:
+                WRC += wrc   
+                
+        if mode == 'partial':
+            try:
+                recall = WRC/info.count_predictions_in_benchmark
+            except ZeroDivisionError:
+                recall = 0
+                print("No protein in this predicted set became benchmarks\n")
+                
+        elif mode == 'full':
+            try:
+                recall = WRC/info.count_true_terms
+            except ZeroDivisionError:
+                recall = 0
+                print("No protein in this benchmark set\n")
+                
+        try:
+            precision = WPR/info.count_above_threshold[threshold]   
+        except ZeroDivisionError:
+            precision = None
+            print("No prediction is made above the %.2f threshold\n" % threshold)
+           
+        return (precision, recall) 
+        
+        
+    def WPRRC(self, info, threshold, protein):
+        '''
+        Calculate the PRRC of a single protein
+        
+        Input:
+        info --
+        threshold --
+        protein --
+        '''
+        
+        # Initalize Variables
+        total = 0.0        
+        TP_total = 0.0      # True positive IC sum
+        
+        if(threshold == 0):
+            #This is all predicted terms
+            5 #temp code
+        else:
+            # For every term related to the protein
+            for term in info.predicted_bench[protein]:
+                if info.predicted_bench[protein][term][0] >= threshold:
+                    #Add IC value to total
+                    total += 0 #WHEREEVER WE HAVE THAT VALUE
+                    # If it is actually True, add its IC to TP_total
+                    if info.predicted_bench[protein][term][1] :
+                        TP_total += 0 #WHEREEVER WE HAVE THAT VALUE
+        
+                        
+        # Find PR: TP / (TP + FP)
+        try:
+            precision = TP_total / total 
+        except ZeroDivisionError:
+            precision = None
+        # Find RC: TP / (TP + FN)
+        recall = TP_total/5 ##We need the FN terms as well, how?###############
+        
+        return (precision,recall)
     
+    
+#########################################################################################################################################    
     
 class Smin:
     '''
@@ -639,7 +776,12 @@ class Smin:
         P -- Prediction
         '''
         
+        total = 0.0
         # Sum the IC values of every element in T not in P
+        for term in T:
+            if term not in P:
+                total += term.ic_value ################################################### MAKE SURE CORRECT FORMAT ONCE DTERMINED
+        return total 
         
         
     def mi(T, P):
@@ -651,13 +793,21 @@ class Smin:
         P -- Prediction
         '''
         
+        total = 0.0
         # Sum the IC values of every element in P not in T
+        for term in P:
+            if term not in T:
+                total += term.ic_value ################################################## MAKE SURE CORRECT FORMAT ONCE DTERMINED
+        return total                
+        
+        
     
     def s(k, ru, mi):
         ''' Semantic Distance '''
         
         s = (ru^k + mi^k)^(1/k)
-
+        return s
+        
 
     def s_average(info, k, threshold, mode):
         '''
@@ -675,14 +825,14 @@ class Smin:
         
         
 
-   def output(self, info, k, mode):
-       '''
-       Calculate Smin
-       
-       k = 2 by convention
-       '''
+    def output(self, info, k, mode):
+        '''
+        Calculate Smin
+        
+        k = 2 by convention
+        '''
     
-       # Intialize Variables
+        # Intialize Variables
         smin = 0.0
         smin_threshold = 0.0
         RU = []
