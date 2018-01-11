@@ -69,23 +69,23 @@ def mkdir_p(path):
 def read_config():
     parser = argparse.ArgumentParser(description='Precision- Recall assessment for CAFA predictions.', )
     
-
     parser.add_argument('config_stream',type=extant_file, help='Configuration file')
-    #CAFA3 raw submission filename formats are listed here:https://www.synapse.org/#!Synapse:syn5840147/wiki/402192
-    #example filename format: Doegroup_1_9606.txt/Doegroup_2_hpo.txt
-    #If prediction file is already split by ontology it should follow Doegroup_1_9606_BPO.txt(or _MFO, _CCO)                  
+    # CAFA3 raw submission filename formats are listed here:https://www.synapse.org/#!Synapse:syn5840147/wiki/402192
+    # example filename format: Doegroup_1_9606.txt/Doegroup_2_hpo.txt
+    # If prediction file is already split by ontology it should follow Doegroup_1_9606_BPO.txt(or _MFO, _CCO)                  
     args = parser.parse_args()
+    # Load config file to dictionary
     try:
         config_dict = yaml.load(args.config_stream)['assess']
     except yaml.YAMLError as exc:
         print(exc)
         sys.exit()
+        
     obo_path = config_dict['obo']
     bfolder = config_dict['benchmark']
     results_folder = config_dict['results']
     f = config_dict['file']
     return(obo_path, bfolder, results_folder, f)
-    
 
 
 if __name__=='__main__':
