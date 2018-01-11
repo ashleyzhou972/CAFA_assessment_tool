@@ -196,16 +196,15 @@ class benchmark:
         Progate Benchmark terms.
         '''
         
+        self.true_terms = defaultdict(set)
         #Key: protein
         #Value: set of benchmark propagated terms
-        self.true_terms = defaultdict(set)
+        
         for protein in self.true_base_terms:
             for term in self.true_base_terms[protein]:
                 try:
-                    
                     ancestors = self.ancestors[term].difference(root_terms)    
-                #delete root term in self.true_terms
-                #modified on 20170203
+                
                 except KeyError:
                     sys.stderr.write("%s not found \n" % term) 
                 self.true_terms[protein].add(term)
@@ -419,10 +418,69 @@ class Result:
 class IC:
     '''
     Information Content
+    
+    Some code in this section taken / based on https://github.com/ppypp/debias/blob/master/lib/debias.py
     '''
         
-    def __init__():
+    def __init__(info):
+        '''
+        Make local copy of needed data 
         
+        Copy info and create data dictionary
+        '''        
+        data = dict()
+        counter = 1
+        #for every annotation in our set ###########FIGURE OUT WHERE THAT WOULD BE##############
+        for annotation in something: #GAF in the other code 
+            id = "annotation" + str(counter)
+            data[id] = annotation
+            counter += 1
+        #Data is setup
+            
+            
+        
+    def GO_term_frequency(self):
+        ''' Count fequency for each Go term '''
+        
+        frequency = dict()
+        data = self.data
+        for annotation in data:
+            if data[annotation]['GO_ID'] in frequency:
+                frequency[data[annotation]['GO_ID']] += 1
+            else:
+                frequency[data[annotation]['GO_ID']] = 1
+        return frequency    
+        
+        
+    def PL_IC(self, threshold):
+        '''
+        Calculate Phillip Lord Iimformation Content
+        
+        Input:
+        threshold --
+        '''
+        data = self.data
+        
+        go_terms = []
+        results = dict()
+        ic = dict()
+        
+        for annotation in data:
+            go_terms.append(data[annotation]["GO_ID"])
+            
+        #Makes an object that contains the count of each Go_term
+        GO_term_to_PL_info=collections.Counter(go_terms)
+                
+        for term in GO_term_to_PL_info:
+            ic_term = -math.log(GO_term_to_PL_info[term] / len(go_terms), 2)
+            ic['term'] = ic_term
+              
+        for attnid in data:
+            annotation=data[attnid]
+            if GO_term_to_PL_info[annotation["GO_ID"]]>=threshold:
+                results[attnid]=data[attnid]
+        
+        return results
     
     
 class Fmax:
