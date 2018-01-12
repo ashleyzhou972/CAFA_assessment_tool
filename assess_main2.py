@@ -113,22 +113,22 @@ if __name__=='__main__':
     print('KEYWORDS: %s\n' % keywords)
     print('Species:%s\n' % taxon)
           
-    resulthandle= open(resultsFolder+"/%s_results.txt" % (os.path.basename(f).split('.')[0]),'w')
-    prhandle = open(resultsFolder+"/pr_rc/%s_prrc.txt" % (os.path.basename(f).split('.')[0]),'w')
+    resulthandle= open(resultsFolder + "/%s_results.txt" % (os.path.basename(f).split('.')[0]),'w')
+    prhandle = open(resultsFolder + "/pr_rc/%s_prrc.txt" % (os.path.basename(f).split('.')[0]),'w')
     resulthandle.write('AUTHOR:%s\n' % author)
     resulthandle.write('MODEL: %s\n' % model) 
     resulthandle.write('KEYWORDS: %s\n' % keywords)  
     resulthandle.write('Species:%s\n' % taxon)
     resulthandle.write('%s\t%s\t%s\t | %s\t%s\t%s\n' % ('Ontology','Type','Mode','Fmax','Threshold','Coverage'))
-    for onto in ['bpo','cco','mfo']:
-        path = os.path.splitext(pred_path.name)[0]+'_'+onto.upper()+'.txt'
-        print('ontology: %s\n' % onto)
+    for ontology in ['bpo','cco','mfo']:
+        path = os.path.splitext(pred_path.name)[0] + '_'+ontology.upper() + '.txt'
+        print('ontology: %s\n' % ontology)
         for Type in ['type1','type2']:
             print('benchmark type:%s\n' % typeConverter(Type))
-            benchmark, obocountDict = read_benchmark(onto, taxon_name_converter(taxon), Type, benchmarkFolder, obo_path)
-            if benchmark==None:
+            benchmark, obocountDict = read_benchmark(ontology, taxon_name_converter(taxon), Type, benchmarkFolder, obo_path)
+            if benchmark == None:
                 sys.stderr.write('No benchmark is available for the input species and type')
-            i = Info(benchmark, path, obocountDict[onto])
+            i = Info(benchmark, path, obocountDict[ontology])
             if i.exist:
                 for mode in ['partial', 'full']:
                     print('mode:%s\n' % mode)
@@ -143,10 +143,10 @@ if __name__=='__main__':
                     print('fmax: %s\n' % opt)
                     print('threshold giving fmax: %s\n' % thres)
                     print('coverage: %s\n' % coverage)
-                    resulthandle.write('%s\t%s\t%s\t | %s\t%s\t%s\n' % (onto,typeConverter(Type),mode,opt,thres,coverage))
-                    prhandle.write('>%s\t%s\t%s\n |' %  (onto,typeConverter(Type),mode))
-                    prhandle.write(" ".join([str(s) for s in precision]) +'\n')
-                    prhandle.write(" ".join([str(s) for s in recall]) +'\n') 
+                    resulthandle.write('%s\t%s\t%s\t | %s\t%s\t%s\n' % (ontology, typeConverter(Type), mode, opt, thres, coverage))
+                    prhandle.write('>%s\t%s\t%s\n |' %  (ontology, typeConverter(Type),mode))
+                    prhandle.write(" ".join([str(s) for s in precision]) + '\n')
+                    prhandle.write(" ".join([str(s) for s in recall]) + '\n') 
             del i
             gc.collect()
     resulthandle.close()

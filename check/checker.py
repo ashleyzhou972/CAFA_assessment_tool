@@ -182,8 +182,8 @@ class benchmark:
         ancestor_path -- ontology specific file location
         '''
         
-        #Key: protein
-        #Value: set of benchmark leaf terms
+        # Key: protein
+        # Value: set of benchmark leaf terms
         self.ancestors = defaultdict(set)
         # Read GO ancestors file generated with go_ontology_ancestors_split_write()
         # File format: 
@@ -210,8 +210,8 @@ class benchmark:
         '''
         
         self.true_terms = defaultdict(set)
-        #Key: protein
-        #Value: set of benchmark propagated terms
+        # Key: protein
+        # Value: set of benchmark propagated terms
         
         for protein in self.true_base_terms:
             for term in self.true_base_terms[protein]:
@@ -224,54 +224,58 @@ class benchmark:
                 self.true_terms[protein] |= ancestors
         
 
-#####################################BENCHMARK END ##########################################
+#####################################BENCHMARK END ############################
 
-###########################################################################################
-#################################### START OF INFO ########################################
-###########################################################################################
+###############################################################################
+#################################### START OF INFO ############################
+###############################################################################
 
 class Info:
     ''' Holds all the stuff we need, allows for just importing once '''
     
    
-    def __init__(self, benchmark, os_pred_path,obocounts):
+    def __init__(self, benchmark, os_prediction_path, obocounts):
         '''
         Initalize.
         
         Input:
         benchmark -- instance of the benchmark class
-        os_pred_path -- !ontology-specific! prediction file separated in GOPred (without headers)
+        os_prediction_path -- !ontology-specific! prediction file 
+                              separated in GOPred (without headers)
         obocounts -- total number of terms in the ontology
         '''
         
-        #Initialize variables
+        # Initialize variables
         self.exist                            = True
         self.ancestors                        = benchmark.ancestors
         self.true_terms                       = benchmark.true_terms
         self.obocount                         = obocounts
-        #Set of all obsolete terms found
+        # Set of all obsolete terms found
         self.obsolete                         = set()
-        #count_above_threshold is the number of proteins with at least one term above threshold
+        # count_above_threshold is the number of proteins 
+        # with at least one term above threshold
         self.count_above_threshold            = defaultdict()
-        #count_predictions_in_benchmark is the number of predicted proteins in this file that are in the benchmark file (for coverage)
+        # count_predictions_in_benchmark is the number of predicted proteins 
+        # in this file that are in the benchmark file (for coverage)
         self.count_predictions_in_benchmark   = 0
         self.count_true_terms                 = len(self.true_terms)
-        #self.data is the dictionary for all predicted terms
+        # self.data is the dictionary for all predicted terms
         self.data                             = defaultdict(list)
-        #self.predicted_bench is the dictionary for all predicted terms that are benchmarks
+        # self.predicted_bench is the dictionary 
+        # for all predicted terms that are benchmarks
         self.predicted_bench                  = defaultdict(defaultdict)
-        #key:protein
-        #value: list of dictionaries
-        #key: GO term
-        #value: tuple(confidence, Boolean) Boolean is whether in self.true_terms     
+        # key:protein
+        # value: list of dictionaries
+        # key: GO term
+        # value: tuple(confidence, Boolean) Boolean is whether in self.true_terms     
         
-        #Read in prediction file        
-        if os.path.getsize(os_pred_path) > 0:
-            for inrec in open(os_pred_path,'r'):
+        # Read in prediction file        
+        if os.path.getsize(os_prediction_path) > 0:
+            for inrec in open(os_prediction_path,'r'):
                 fields = [i.strip() for i in inrec.split()]
                 self.data[fields[0]].append({'term': fields[1], 'confidence': float(fields[2])})
             
-            #Propagated prediction
+            # Propagated prediction
             for protein in self.data:
                 if self.true_terms[protein]:
                     '''
@@ -296,7 +300,7 @@ class Info:
                             # Add confidence and compare with self.true_terms
                             #Regardless of comparision, propagate
                             if tc['term'] not in root_terms:
-                                self.predicted_bench[protein][tc['term']]=self.compare(protein, tc)
+                                self.predicted_bench[protein][tc['term']] = self.compare(protein, tc)
                                 for ancterm in ancterms:
                                     #Make a new TC with ancestors
                                     newtc = {'term':ancterm,'confidence':tc['confidence']}
@@ -305,7 +309,7 @@ class Info:
                                         self.update_confidence(protein, newtc)
                                     else:
                                         # Add term to self.predicted_bench
-                                        self.predicted_bench[protein][ancterm]=self.compare(protein, newtc)
+                                        self.predicted_bench[protein][ancterm] = self.compare(protein, newtc)
                                         
             if self.count_predictions_in_benchmark==0:
                 self.exist = False
@@ -333,16 +337,17 @@ class Info:
         tc -- a dictionary format as: {'confidence':0.57,'term':'GO:006644'}
         '''
         
-        #Defined for readablity
+        # Defined for readablity
         confidence = tc['confidence'] 
+        term = tc['term']
         
-        if confidence > self.predicted_bench[protein][tc['term']][0]:
-            #Update the confidence
-            self.predicted_bench[protein][tc['term']][0] = confidence
-            #Propagate changes if necessary
-            for ancterm in self.ancestors[tc['term']].difference(root_terms):
+        if confidence > self.predicted_bench[protein][term][0]:
+            # Update the confidence
+            self.predicted_bench[protein][term][0] = confidence
+            # Propagate changes if necessary
+            for ancterm in self.ancestors[term].difference(root_terms):
                 if confidence > self.predicted_bench[protein][ancterm][0]:
-                    #Update the confidence
+                    # Update the confidence
                     self.predicted_bench[protein][ancterm][0] = confidence
                     
                     
@@ -470,6 +475,7 @@ class IC:
         Input:
         threshold --
         '''
+        
         data = self.data
         
         go_terms = []
@@ -479,7 +485,7 @@ class IC:
         for annotation in data:
             go_terms.append(data[annotation]["GO_ID"])
             
-        #Makes an object that contains the count of each Go_term
+        # Makes an object that contains the count of each Go_term
         GO_term_to_PL_info=collections.Counter(go_terms)
                 
         for term in GO_term_to_PL_info:
@@ -737,8 +743,8 @@ class WFmax(Fmax): # Will use parts of Fmax just using IC values
         TP_total = 0.0      # True positive IC sum
         
         if(threshold == 0):
-            #This is all predicted terms
-            5 #temp code
+            # This is all predicted terms
+            5 #temp code ##############################################################################################
         else:
             # For every term related to the protein
             for term in info.predicted_bench[protein]:
