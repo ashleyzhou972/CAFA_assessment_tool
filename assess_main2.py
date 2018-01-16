@@ -128,7 +128,9 @@ if __name__=='__main__':
             benchmark, obocountDict = read_benchmark(ontology, taxon_name_converter(taxon), Type, benchmarkFolder, obo_path)
             if benchmark == None:
                 sys.stderr.write('No benchmark is available for the input species and type')
-            i = Info(benchmark, path, obocountDict[ontology])
+                
+            GAF = 0
+            i = Info(benchmark, path, obocountDict[ontology], GAF) # Add reference to a GAF
             if i.exist:
                 for mode in ['partial', 'full']:
                     print('mode:%s\n' % mode)

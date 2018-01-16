@@ -234,7 +234,7 @@ class Info:
     ''' Holds all the stuff we need, allows for just importing once '''
     
    
-    def __init__(self, benchmark, os_prediction_path, obocounts):
+    def __init__(self, benchmark, os_prediction_path, obocounts, GAF):
         '''
         Initalize.
         
@@ -268,6 +268,12 @@ class Info:
         # value: list of dictionaries
         # key: GO term
         # value: tuple(confidence, Boolean) Boolean is whether in self.true_terms     
+        # FOR IC FUNCTION
+        # NEED TO SET IT UP STILL
+        # PROIR CODE USED A GAF FILE - whats similar to that that i have access to
+        self.GAF = GAF
+                
+        
         
         # Read in prediction file        
         if os.path.getsize(os_prediction_path) > 0:
@@ -392,6 +398,7 @@ class Info:
         '''
         r = Result()
         #### FOR NOW ####
+        
         if(tool == "Fmax"):
             f = Fmax()
             return f.output(self, mode)
@@ -443,17 +450,33 @@ class IC:
         Make local copy of needed data 
         
         Copy info and create data dictionary
-        '''        
-        data = dict()
-        counter = 1
-        #for every annotation in our set ###########FIGURE OUT WHERE THAT WOULD BE##############
-        for annotation in something: #GAF in the other code 
-            id = "annotation" + str(counter)
-            data[id] = annotation
-            counter += 1
+        '''                
+        self.data = convertFromGAFToRequiredFormat(info.GAF)
         #Data is setup
             
-            
+    
+###############################################BADBADBAD#################################################### 
+# Need to redo IC and make work    
+    def convertFromGAFToRequiredFormat(gaf):
+        """
+        This function takes the data input which is created by gaf iterator and then makes few changes 
+        in the annotations which is relevant to this program.
+        """
+        
+        alt_id_to_id_map = cp.load( open( FILE_ALTERNATE_ID_TO_ID_MAPPING, "rb" ) )
+        counter=1
+        data=dict()
+        for annotation in gaf:
+            id="anntn" + str( counter )
+            if annotation['GO_ID'] in alt_id_to_id_map:
+                annotation['GO_ID']=alt_id_to_id_map[annotation['GO_ID']]
+            annotation['DB:Reference']=annotation['DB:Reference'][0]
+            annotation['Date']=parser.parse(annotation['Date']).date()
+            #annotation['Qualifier']='|'.join(annotation['Qualifier'])
+            #print(annotation['Evidence'])
+            data[id]=annotation
+            counter += 1
+        return data        
         
     def GO_term_frequency(self):
         ''' Count fequency for each Go term '''
@@ -470,7 +493,7 @@ class IC:
         
     def PL_IC(self, threshold):
         '''
-        Calculate Phillip Lord Iimformation Content
+        Calculate Phillip Lord Information Content
         
         Input:
         threshold --
