@@ -90,16 +90,16 @@ def read_config():
 #Start of Main
 if __name__=='__main__':
     #Read Config
-    obo_path,benchmarkFolder, resultsFolder,f = read_config()
+    obo_path, benchmarkFolder, resultsFolder, f = read_config()
     #Setup workspace
     mkdir_p(resultsFolder)
-    mkdir_p(resultsFolder+'/pr_rc/')
+    mkdir_p(resultsFolder+'/check/')
     print('\nEvaluating %s.\n' % f)
     
     all_pred = GOPred()
     pred_path = open(f,'r')
     all_pred.read_and_split_and_write(obo_path,pred_path)
-    info = [all_pred.author,all_pred.model,all_pred.keywords,all_pred.taxon]
+    info = [all_pred.author, all_pred.model, all_pred.keywords, all_pred.taxon]
     #clear memory
     del all_pred
     gc.collect()
@@ -114,7 +114,7 @@ if __name__=='__main__':
     print('Species:%s\n' % taxon)
           
     resulthandle= open(resultsFolder + "/%s_results.txt" % (os.path.basename(f).split('.')[0]),'w')
-    prhandle = open(resultsFolder + "/pr_rc/%s_prrc.txt" % (os.path.basename(f).split('.')[0]),'w')
+    prhandle = open(resultsFolder + "/check/%s_prrc.txt" % (os.path.basename(f).split('.')[0]),'w')
     resulthandle.write('AUTHOR:%s\n' % author)
     resulthandle.write('MODEL: %s\n' % model) 
     resulthandle.write('KEYWORDS: %s\n' % keywords)  
@@ -129,8 +129,7 @@ if __name__=='__main__':
             if benchmark == None:
                 sys.stderr.write('No benchmark is available for the input species and type')
                 
-            GAF = 0
-            i = Info(benchmark, path, obocountDict[ontology], GAF) # Add reference to a GAF
+            i = Info(benchmark, path, obocountDict[ontology]) # Add reference to a GAF
             if i.exist:
                 for mode in ['partial', 'full']:
                     print('mode:%s\n' % mode)

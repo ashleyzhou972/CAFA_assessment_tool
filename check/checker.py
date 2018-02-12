@@ -7,12 +7,10 @@
 
 import sys
 import math
-import collections
 from collections import defaultdict
 import numpy
 import os
 from Ontology.IO import OboIO
-
 
 legal_species = [
 "all",
@@ -60,11 +58,11 @@ def go_ontology_split(ontology):
     cco_terms = set({})
     
     for node in ontology.get_ids(): # loop over node IDs and alt_id's
-        if ontology.namespace[node] == "molecular_function":
+        if ontology.namespace[node] == "molecular_function": # F
             mfo_terms.add(node)
-        elif ontology.namespace[node] == "biological_process":
+        elif ontology.namespace[node] == "biological_process": # P
             bpo_terms.add(node)
-        elif ontology.namespace[node] == "cellular_component":
+        elif ontology.namespace[node] == "cellular_component": # C
             cco_terms.add(node)
         else:
             raise(ValueError,"%s has no namespace" % node)
@@ -234,7 +232,7 @@ class Info:
     ''' Holds all the stuff we need, allows for just importing once '''
     
    
-    def __init__(self, benchmark, os_prediction_path, obocounts, GAF):
+    def __init__(self, benchmark, os_prediction_path, obocounts):
         '''
         Initalize.
         
@@ -268,10 +266,6 @@ class Info:
         # value: list of dictionaries
         # key: GO term
         # value: tuple(confidence, Boolean) Boolean is whether in self.true_terms     
-        # FOR IC FUNCTION
-        # NEED TO SET IT UP STILL
-        # PROIR CODE USED A GAF FILE - whats similar to that that i have access to
-        self.GAF = GAF
                 
         
         
@@ -438,90 +432,7 @@ class Result:
         
         #####Add over info that you would want to output #####
 
-class IC:
-    '''
-    Information Content
-    
-    Some code in this section taken / based on https://github.com/ppypp/debias/blob/master/lib/debias.py
-    '''
-        
-    def __init__(info):
-        '''
-        Make local copy of needed data 
-        
-        Copy info and create data dictionary
-        '''                
-        self.data = convertFromGAFToRequiredFormat(info.GAF)
-        #Data is setup
-            
-    
-###############################################BADBADBAD#################################################### 
-# Need to redo IC and make work    
-    def convertFromGAFToRequiredFormat(gaf):
-        """
-        This function takes the data input which is created by gaf iterator and then makes few changes 
-        in the annotations which is relevant to this program.
-        """
-        
-        alt_id_to_id_map = cp.load( open( FILE_ALTERNATE_ID_TO_ID_MAPPING, "rb" ) )
-        counter=1
-        data=dict()
-        for annotation in gaf:
-            id="anntn" + str( counter )
-            if annotation['GO_ID'] in alt_id_to_id_map:
-                annotation['GO_ID']=alt_id_to_id_map[annotation['GO_ID']]
-            annotation['DB:Reference']=annotation['DB:Reference'][0]
-            annotation['Date']=parser.parse(annotation['Date']).date()
-            #annotation['Qualifier']='|'.join(annotation['Qualifier'])
-            #print(annotation['Evidence'])
-            data[id]=annotation
-            counter += 1
-        return data        
-        
-    def GO_term_frequency(self):
-        ''' Count fequency for each Go term '''
-        
-        frequency = dict()
-        data = self.data
-        for annotation in data:
-            if data[annotation]['GO_ID'] in frequency:
-                frequency[data[annotation]['GO_ID']] += 1
-            else:
-                frequency[data[annotation]['GO_ID']] = 1
-        return frequency    
-        
-        
-    def PL_IC(self, threshold):
-        '''
-        Calculate Phillip Lord Information Content
-        
-        Input:
-        threshold --
-        '''
-        
-        data = self.data
-        
-        go_terms = []
-        results = dict()
-        ic = dict()
-        
-        for annotation in data:
-            go_terms.append(data[annotation]["GO_ID"])
-            
-        # Makes an object that contains the count of each Go_term
-        GO_term_to_PL_info=collections.Counter(go_terms)
-                
-        for term in GO_term_to_PL_info:
-            ic_term = -math.log(GO_term_to_PL_info[term] / len(go_terms), 2)
-            ic['term'] = ic_term
-              
-        for attnid in data:
-            annotation=data[attnid]
-            if GO_term_to_PL_info[annotation["GO_ID"]]>=threshold:
-                results[attnid]=data[attnid]
-        
-        return results
-    
+
     
 ##################################################################################################
 ##################################################################################################
