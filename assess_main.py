@@ -11,9 +11,6 @@ import gc
 import yaml
 
 
-
-
-
 def get_namespace_index(namespace):
     '''
     convert namespace into indices
@@ -30,6 +27,7 @@ def get_namespace_index(namespace):
         print(namespace)
     return num
 
+
 def taxon_name_converter(taxonID):
     #convert from taxonomy ID to name (i.e. from 9606 to HUMAN）
     taxonTable = {'10116':'RAT','9606':'HUMAN','3702':'ARATH','7955':'DANRE','44689':'DICDI',
@@ -40,8 +38,6 @@ def taxon_name_converter(taxonID):
     return taxonTable[taxonID]    
  
 
-
-
 def typeConverter(oldType):
     if oldType=='type1':
         newType = 'NK'
@@ -50,12 +46,14 @@ def typeConverter(oldType):
     elif oldType == 'all':
         newType = 'All'
     return(newType)
+    
 
 def extant_file(x):
     if not os.path.isfile(x):
         raise argparse.ArgumentTypeError("{0} does not exist".format(x))
     else:
         return(open(x,'r'))
+        
         
 def mkdir_p(path):
     try:
@@ -66,30 +64,34 @@ def mkdir_p(path):
         else:
             raise
             
+            
 def read_config():
     parser = argparse.ArgumentParser(description='Precision- Recall assessment for CAFA predictions.', )
     
-
     parser.add_argument('config_stream',type=extant_file, help='Configuration file')
-    #CAFA3 raw submission filename formats are listed here:https://www.synapse.org/#!Synapse:syn5840147/wiki/402192
-    #example filename format: Doegroup_1_9606.txt/Doegroup_2_hpo.txt
-    #If prediction file is already split by ontology it should follow Doegroup_1_9606_BPO.txt(or _MFO, _CCO)                  
+    # CAFA3 raw submission filename formats are listed here:https://www.synapse.org/#!Synapse:syn5840147/wiki/402192
+    # example filename format: Doegroup_1_9606.txt/Doegroup_2_hpo.txt
+    # If prediction file is already split by ontology it should follow Doegroup_1_9606_BPO.txt(or _MFO, _CCO)                  
     args = parser.parse_args()
+    # Load config file to dictionary
     try:
         config_dict = yaml.load(args.config_stream)['assess']
     except yaml.YAMLError as exc:
         print(exc)
         sys.exit()
+        
     obo_path = config_dict['obo']
-    bfolder = config_dict['benchmark']
+    benchmark_folder = config_dict['benchmark']
     results_folder = config_dict['results']
     f = config_dict['file']
-    return(obo_path, bfolder, results_folder, f)
-    
+    return(obo_path, benchmark_folder, results_folder, f)
 
 
+#Start of Main
 if __name__=='__main__':
+    #Read Config
     obo_path,benchmarkFolder, resultsFolder,f = read_config()
+    #Setup workspace
     mkdir_p(resultsFolder)
     mkdir_p(resultsFolder+'/pr_rc/')
     print('\nEvaluating %s.\n' % f)
@@ -101,30 +103,32 @@ if __name__=='__main__':
     #clear memory
     del all_pred
     gc.collect()
-    print('AUTHOR: %s\n' % info[0])
-    print('MODEL: %s\n' % info[1])
-    print('KEYWORDS: %s\n' % info[2][0])
-    print('Species:%s\n' % info[3])
+    #Store values
     author = info[0]
-    taxon = info[3]
     model = info[1]
-    keywords = info[2][0]        
+    keywords = info[2][0] 
+    taxon = info[3]
+    print('AUTHOR: %s\n' % author)
+    print('MODEL: %s\n' % model)
+    print('KEYWORDS: %s\n' % keywords)
+    print('Species:%s\n' % taxon)
+          
     resulthandle= open(resultsFolder+"/%s_results.txt" % (os.path.basename(f).split('.')[0]),'w')
     prhandle = open(resultsFolder+"/pr_rc/%s_prrc.txt" % (os.path.basename(f).split('.')[0]),'w')
-    resulthandle.write('AUTHOR:%s\n' % info[0])
-    resulthandle.write('MODEL: %s\n' % info[1]) 
-    resulthandle.write('KEYWORDS: %s\n' % info[2][0])  
-    resulthandle.write('Species:%s\n' % info[3])
+    resulthandle.write('AUTHOR:%s\n' % author)
+    resulthandle.write('MODEL: %s\n' % model) 
+    resulthandle.write('KEYWORDS: %s\n' % keywords)  
+    resulthandle.write('Species:%s\n' % taxon)
     resulthandle.write('%s\t%s\t%s\t | %s\t%s\t%s\n' % ('Ontology','Type','Mode','Fmax','Threshold','Coverage'))
     for onto in ['bpo','cco','mfo']:
         path = os.path.splitext(pred_path.name)[0]+'_'+onto.upper()+'.txt'
         print('ontology: %s\n' % onto)
         for Type in ['type1','type2']:
             print('benchmark type:%s\n' % typeConverter(Type))
-            b,obocountDict = read_benchmark(onto, taxon_name_converter(taxon),Type,benchmarkFolder,obo_path)
-            if b==None:
+            benchmark, obocountDict = read_benchmark(onto, taxon_name_converter(taxon), Type, benchmarkFolder, obo_path)
+            if benchmark==None:
                 sys.stderr.write('No benchmark is available for the input species and type')
-            c = PrecREC(b,path,obocountDict[onto])
+            c = PrecREC(benchmark, path, obocountDict[onto])
             if c.exist:
                 for mode in ['partial', 'full']:
                     print('mode:%s\n' % mode)
@@ -133,7 +137,7 @@ if __name__=='__main__':
                     recall = fm[1]
                     opt = fm[2]
                     thres = fm[3]
-                    coverage = fm[4]
+                    coverage = c.coverage()
                     #fm.append(os.path.splitext(os.path.basename(pred_path.name))[0])
                     #print(fm)
                     print('fmax: %s\n' % opt)
