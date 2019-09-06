@@ -24,8 +24,8 @@ For bug reports, comments or questions, please email nzhou[AT]iastate.edu.
  - `assess_main.py` 
 	- Only input needed is the configuration file `config.yaml`, where the following four parameters are specified in the first section `assess`.
 	- First parameter `file`: prediction file formatted according to [CAFA3 formats](https://www.synapse.org/#!Synapse:syn5840147/wiki/402192)
-	- Second parameter `obo`: path of the gene ontology obo file. The latest version can be downloaded [here](http://purl.obolibrary.org/obo/go.obo). Note that the obo file used here should not be older than the one used in the prediction.
-	- Third parameter `benchmark`: directory of the benchmark folder. Specific formats are required for the benchmark folder, including two sub-directories: groundtruth and lists. Please refer to auxiliary function `benchmark_folder.py` for the creation of this folder, as well as the genral creation of benchmarks. An example benchmark folder is given in this repository `./precrec/benchmark`
+	- Second parameter `obo`: path of the gene ontology obo file. The latest version can be downloaded [here](http://purl.obolibrary.org/obo/go.obo). Note that the obo file used here should not be older than the one used in the prediction. The obo files used in both CAFA2 and CAFA3 are provided in the `./precrec/` folder.
+	- Third parameter `benchmark`: directory of the benchmark folder. Specific formats are required for the benchmark folder, including two sub-directories: groundtruth and lists. Please refer to auxiliary function `benchmark_folder.py` for the creation of this folder, as well as the genral creation of benchmarks. Benchmarks from CAFA2 and CAFA3 are given in this repository `./precrec/benchmark`
 	- Fourth parameter `results`: Folder where results are saved. A `pr_rc` folder will be created within the results folder.
 	- Note that only the first section `assess` of the configuration file is used here, the rest of the configuration file can be ignored for this function	
  - `plot.py`
@@ -62,6 +62,8 @@ Therefore, we here provide functions to convert between UniProt IDs and CAFA3 ID
 
 
 ## References
-Jiang, Yuxiang, et al. "An expanded evaluation of protein function prediction methods shows an improvement in accuracy." Genome biology 17.1 (2016): 184.
+Zhou, Naihui *et al.* The CAFA challenge reports improved protein function prediction and new functional annotations for hundreds of genes through experimental screens, , bioRxiv 653105; doi: https://doi.org/10.1101/653105
+
+Jiang, Yuxiang, *et al.* "An expanded evaluation of protein function prediction methods shows an improvement in accuracy." Genome biology 17.1 (2016): 184.
 
 http://biofunctionprediction.org/cafa/
