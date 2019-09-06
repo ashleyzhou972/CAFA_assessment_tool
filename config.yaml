@@ -2,8 +2,8 @@
 assess:
         file: ZZZ_1_9606.txt 
         #Only One prediction file allowed
-        obo: ./precrec/go_20170429.obo
-        benchmark: ./precrec/benchmark/
+        obo: ./precrec/go_cafa3.obo
+        benchmark: ./precrec/benchmark/CAFA3_benchmarks/
         results: ./results/
 plot:
         results: ./results/

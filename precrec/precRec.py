@@ -9,10 +9,12 @@ dependency: -
 last updated: March 21, 2017
 """
 
+
 import sys
 from collections import defaultdict
 import numpy
 import os
+os.chdir('/home/nzhou/CAFA_assessment_tool')
 from Ontology.IO import OboIO
 
 
@@ -75,6 +77,7 @@ def go_ontology_ancestors_split_write(obo_path):
     Input: an OBO file
     Output: 3 files with ancestors
     by Dr. Friedberg
+    Updated 20190906 by Ashley: ony write ancestor within the same ontology
     """
     
     obo_bpo_out = open("%s_ancestors_bpo.txt" % (os.path.splitext(obo_path)[0]),"w")
@@ -85,13 +88,31 @@ def go_ontology_ancestors_split_write(obo_path):
     mfo_terms, bpo_terms, cco_terms = go_ontology_split(go)
     for term in mfo_terms:
         ancestors = go.get_ancestors(term)
-        obo_mfo_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        ancestors_filter = set()
+        if len(ancestors)>0:
+            for anc in ancestors:
+                anc_ont = go.get_namespace(anc)
+                if anc_ont=='molecular_function':
+                    ancestors_filter.add(anc)
+        obo_mfo_out.write("%s\t%s\n" % (term,",".join(ancestors_filter)))
     for term in bpo_terms:
         ancestors = go.get_ancestors(term)
-        obo_bpo_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        ancestors_filter = set()
+        if len(ancestors)>0:
+            for anc in ancestors:
+                anc_ont = go.get_namespace(anc)
+                if anc_ont=='biological_process':
+                    ancestors_filter.add(anc)
+        obo_bpo_out.write("%s\t%s\n" % (term,",".join(ancestors_filter)))
     for term in cco_terms:
         ancestors = go.get_ancestors(term)
-        obo_cco_out.write("%s\t%s\n" % (term,",".join(ancestors)))
+        ancestors_filter = set()
+        if len(ancestors)>0:
+            for anc in ancestors:
+                anc_ont = go.get_namespace(anc)
+                if anc_ont=='cellular_component':
+                    ancestors_filter.add(anc)        
+        obo_cco_out.write("%s\t%s\n" % (term,",".join(ancestors_filter)))
 
     obo_mfo_out.close()
     obo_bpo_out.close()
