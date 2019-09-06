@@ -1,5 +1,6 @@
 # Precision-Recall Assessment of Protein Function Prediction
 
+[![DOI](https://zenodo.org/badge/102906633.svg)](https://zenodo.org/badge/latestdoi/102906633)
 ## Introduction
 Critical Assessment of Function Annotation (CAFA), is a community-wide challenge designed to provide a large-scale assessment of computational methods dedicated to predicting protein function.
 
