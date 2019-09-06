@@ -75,7 +75,8 @@ def read_config():
     args = parser.parse_args()
     # Load config file to dictionary
     try:
-        config_dict = yaml.load(args.config_stream)['assess']
+
+        config_dict = yaml.safe_load(args.config_stream)['assess']
     except yaml.YAMLError as exc:
         print(exc)
         sys.exit()
