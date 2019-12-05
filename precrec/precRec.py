@@ -14,7 +14,6 @@ import sys
 from collections import defaultdict
 import numpy
 import os
-os.chdir('/home/nzhou/CAFA_assessment_tool')
 from Ontology.IO import OboIO
 
 
