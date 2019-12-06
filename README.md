@@ -64,8 +64,8 @@ Therefore, we here provide functions to convert between UniProt IDs and CAFA3 ID
 
 
 ## References
-Zhou, Naihui *et al.* The CAFA challenge reports improved protein function prediction and new functional annotations for hundreds of genes through experimental screens, , bioRxiv 653105; doi: https://doi.org/10.1101/653105
+Zhou, N., Jiang, Y., Bergquist, T.R. et al. The CAFA challenge reports improved protein function prediction and new functional annotations for hundreds of genes through experimental screens. Genome Biol 20, 244 (2019) doi:10.1186/s13059-019-1835-8
 
-Jiang, Yuxiang, *et al.* "An expanded evaluation of protein function prediction methods shows an improvement in accuracy." Genome biology 17.1 (2016): 184.
+Jiang, Y., Oron, T., Clark, W. et al. An expanded evaluation of protein function prediction methods shows an improvement in accuracy. Genome Biol 17, 184 (2016) doi:10.1186/s13059-016-1037-6
 
 http://biofunctionprediction.org/cafa/
